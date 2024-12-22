@@ -9,8 +9,9 @@ pygame.init()
 SCREEN_WIDTH, SCREEN_HEIGHT = 1200, 800
 GRID_SIZE = 10
 CELL_SIZE = int((SCREEN_WIDTH * 0.7) // GRID_SIZE) - 5  # Adjusted cell size
-GRID_Y_OFFSET = 0  # Add top margin for visibility
-FONT = pygame.font.Font(None, 21)
+GRID_Y_OFFSET = 10  # Add top margin for visibility
+FONT = pygame.font.Font(None, 21)  # Reduced font size for chat
+TIMER_FONT = pygame.font.Font(None, 21)  # Larger font for timer
 
 # Colors
 WHITE = (255, 255, 255)
@@ -31,15 +32,55 @@ def update_chat(message):
     if len(chat_panel) > 12:
         chat_panel.pop(0)
 
+def draw_timer(countdown_time):
+    remaining_time = max(0, int(countdown_time - time.time()))
+    minutes = remaining_time // 60
+    seconds = remaining_time % 60
+    timer_text = TIMER_FONT.render(f"Action Time Left: {minutes:02}:{seconds:02}", True, BLACK)
+    panel_x = int(SCREEN_WIDTH * 0.7)
+    timer_height = int(SCREEN_HEIGHT * 0.1)  # 10% of the screen height
+    screen.blit(timer_text, (panel_x + 10, 10))
+
 def draw_chat():
     panel_x = int(SCREEN_WIDTH * 0.7)
     panel_width = SCREEN_WIDTH - panel_x
-    pygame.draw.rect(screen, WHITE, (panel_x, 0, panel_width, SCREEN_HEIGHT))
-    pygame.draw.rect(screen, BLACK, (panel_x, 0, panel_width, SCREEN_HEIGHT), 2)
+    timer_height = int(SCREEN_HEIGHT * 0.1)
+    chat_y_offset = timer_height
+
+    # Draw the upper section for the timer
+    pygame.draw.rect(screen, WHITE, (panel_x, 0, panel_width, timer_height))
+    pygame.draw.rect(screen, BLACK, (panel_x, 0, panel_width, timer_height), 2)
+
+    # Draw the lower section for the chat
+    pygame.draw.rect(screen, WHITE, (panel_x, chat_y_offset, panel_width, SCREEN_HEIGHT - chat_y_offset))
+    pygame.draw.rect(screen, BLACK, (panel_x, chat_y_offset, panel_width, SCREEN_HEIGHT - chat_y_offset), 2)
 
     for i, line in enumerate(chat_panel):
         text = FONT.render(line, True, BLACK)
-        screen.blit(text, (panel_x + 5, 10 + i * 25))  # Reduced margin to remove gap
+        screen.blit(text, (panel_x + 5, chat_y_offset + 10 + i * 20))  # Adjusted line spacing for smaller font
+    remaining_time = max(0, int(countdown_time - time.time()))
+    minutes = remaining_time // 60
+    seconds = remaining_time % 60
+    timer_text = TIMER_FONT.render(f"Action Time Left: {minutes:02}:{seconds:02}", True, BLACK)
+    panel_x = int(SCREEN_WIDTH * 0.7)
+    screen.blit(timer_text, (panel_x + 10, 10))
+
+def draw_chat():
+    panel_x = int(SCREEN_WIDTH * 0.7)
+    panel_width = SCREEN_WIDTH - panel_x
+    chat_y_offset = SCREEN_HEIGHT // 10
+
+    # Draw the upper section for the timer
+    pygame.draw.rect(screen, WHITE, (panel_x, 0, panel_width, chat_y_offset))
+    pygame.draw.rect(screen, BLACK, (panel_x, 0, panel_width, chat_y_offset), 2)
+
+    # Draw the lower section for the chat
+    pygame.draw.rect(screen, WHITE, (panel_x, chat_y_offset, panel_width, SCREEN_HEIGHT - chat_y_offset))
+    pygame.draw.rect(screen, BLACK, (panel_x, chat_y_offset, panel_width, SCREEN_HEIGHT - chat_y_offset), 2)
+
+    for i, line in enumerate(chat_panel):
+        text = FONT.render(line, True, BLACK)
+        screen.blit(text, (panel_x + 5, chat_y_offset + 10 + i * 20))  # Adjusted line spacing for smaller font
 
 # Create the board
 def draw_board(action_positions):
@@ -66,13 +107,13 @@ def generate_snakes_and_ladders():
     snakes = {}
     ladders = {}
 
-    while len(snakes) < 5:
+    while len(snakes) < 10:
         start = random.randint(11, 90)
         end = start - random.randint(1, 10)
         if end > 0 and start not in snakes and start not in ladders:
             snakes[start] = end
 
-    while len(ladders) < 5:
+    while len(ladders) < 10:
         start = random.randint(1, 89)
         end = start + random.randint(1, 10)
         if end <= 100 and start not in ladders and start not in snakes:
@@ -116,6 +157,7 @@ def animate_movement(start, end, player_color):
         draw_snakes_and_ladders()
         draw_players()
         draw_chat()
+        draw_timer(countdown_end)
 
         x, y = get_coordinates(position)
         pygame.draw.circle(screen, player_color, (x, y), CELL_SIZE // 4)
@@ -124,20 +166,45 @@ def animate_movement(start, end, player_color):
 
 # Load actions
 def load_actions():
-    actions = {"Seduction": ["Action A"], "Excitement": ["Action B"], "Plateau": ["Action C"], "Surrender": ["Action D"]}
+    actions = {
+        "L1": ["Action for L1"],
+        "L2": ["Action for L2"],
+        "L3": ["Action for L3"],
+        "L4": ["Action for L4"],
+        "L5": ["Action for L5"],
+        "L6": ["Action for L6"],
+        "L7": ["Action for L7"],
+        "L8": ["Action for L8"],
+        "L9": ["Action for L9"],
+        "L10": ["Action for L10"]
+    }
     return actions
 
 actions = load_actions()
 
 def get_action(position):
-    if 1 <= position <= 30:
-        return random.choice(actions["Seduction"])
-    elif 31 <= position <= 60:
-        return random.choice(actions["Excitement"])
-    elif 61 <= position <= 90:
-        return random.choice(actions["Plateau"])
+    if 1 <= position <= 10:
+        return random.choice(actions["L1"])
+    elif 11 <= position <= 20:
+        return random.choice(actions["L2"])
+    elif 21 <= position <= 30:
+        return random.choice(actions["L3"])
+    elif 31 <= position <= 40:
+        return random.choice(actions["L4"])
+    elif 41 <= position <= 50:
+        return random.choice(actions["L5"])
+    elif 51 <= position <= 60:
+        return random.choice(actions["L6"])
+    elif 61 <= position <= 70:
+        return random.choice(actions["L7"])
+    elif 71 <= position <= 80:
+        return random.choice(actions["L8"])
+    elif 81 <= position <= 90:
+        return random.choice(actions["L9"])
+    elif 91 <= position <= 100:
+        return random.choice(actions["L10"])
     else:
-        return random.choice(actions["Surrender"])
+        return "No Action"
 
 # Initialize players
 def initialize_players():
@@ -168,6 +235,7 @@ players, player_positions, player_colors = initialize_players()
 current_player_idx = 0
 
 def get_dice_value():
+    global countdown_end
     input_value = ""
     while True:
         for event in pygame.event.get():
@@ -188,8 +256,9 @@ def get_dice_value():
         draw_snakes_and_ladders()
         draw_players()
         draw_chat()
+        draw_timer(countdown_end)
         input_text = FONT.render(f"Enter Dice Value (1-6): {input_value}", True, BLACK)
-        screen.blit(input_text, (int(SCREEN_WIDTH * 0.7) + 5, SCREEN_HEIGHT - 40))  # Reduced margin
+        screen.blit(input_text, (int(SCREEN_WIDTH * 0.7) + 5, SCREEN_HEIGHT - 40))
         pygame.display.flip()
 
 # Draw players
@@ -202,12 +271,14 @@ def draw_players():
 running = True
 winner = None
 action_positions = {}
+countdown_end = time.time()
 while running:
     screen.fill(WHITE)
     draw_board(action_positions)
     draw_snakes_and_ladders()
     draw_players()
     draw_chat()
+    draw_timer(countdown_end)
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -237,14 +308,24 @@ while running:
                     animate_movement(player_positions[current_player], new_pos, player_colors[current_player])
                     player_positions[current_player] = new_pos
 
+                    # Update timer to the new position
+                    countdown_end = time.time() + (player_positions[current_player] * 2)
+
                 if new_pos in snakes:
                     update_chat(f"{players[current_player]} encountered a snake!")
                     animate_movement(new_pos, snakes[new_pos], RED)
                     player_positions[current_player] = snakes[new_pos]
+
+                    # Update timer for snake end position
+                    countdown_end = time.time() + (player_positions[current_player] * 2)
+
                 elif new_pos in ladders:
                     update_chat(f"{players[current_player]} climbed a ladder!")
                     animate_movement(new_pos, ladders[new_pos], GREEN)
                     player_positions[current_player] = ladders[new_pos]
+
+                    # Update timer for ladder end position
+                    countdown_end = time.time() + (player_positions[current_player] * 2)
 
                 action = get_action(player_positions[current_player])
                 action_positions[player_positions[current_player]] = action
