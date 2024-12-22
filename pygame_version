@@ -1,0 +1,259 @@
+import pygame
+import random
+import time
+
+# Initialize Pygame
+pygame.init()
+
+# Screen dimensions
+SCREEN_WIDTH, SCREEN_HEIGHT = 1200, 800
+GRID_SIZE = 10
+CELL_SIZE = int((SCREEN_WIDTH * 0.7) // GRID_SIZE) - 5  # Adjusted cell size
+GRID_Y_OFFSET = 10  # Add top margin for visibility
+FONT = pygame.font.Font(None, 28)
+
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
+YELLOW = (255, 255, 0)
+
+# Initialize screen
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Snakes and Ladders")
+
+# Chat panel setup
+chat_panel = []
+def update_chat(message):
+    chat_panel.append(message)
+    if len(chat_panel) > 12:
+        chat_panel.pop(0)
+
+def draw_chat():
+    panel_x = int(SCREEN_WIDTH * 0.7)
+    panel_width = SCREEN_WIDTH - panel_x
+    pygame.draw.rect(screen, WHITE, (panel_x, 0, panel_width, SCREEN_HEIGHT))
+    pygame.draw.rect(screen, BLACK, (panel_x, 0, panel_width, SCREEN_HEIGHT), 2)
+
+    for i, line in enumerate(chat_panel):
+        text = FONT.render(line, True, BLACK)
+        screen.blit(text, (panel_x + 10, 10 + i * 25))
+
+# Create the board
+def draw_board(action_positions):
+    for row in range(GRID_SIZE):
+        for col in range(GRID_SIZE):
+            position = (GRID_SIZE * (GRID_SIZE - row - 1)) + col + 1
+
+            rect = pygame.Rect(col * CELL_SIZE, row * CELL_SIZE + GRID_Y_OFFSET, CELL_SIZE, CELL_SIZE)
+            pygame.draw.rect(screen, WHITE, rect)
+            pygame.draw.rect(screen, BLACK, rect, 1)
+
+            if position in action_positions:
+                text = FONT.render(action_positions[position], True, BLACK)
+            else:
+                text = FONT.render(str(position), True, BLACK)
+
+            screen.blit(text, (rect.x + 10, rect.y + 10))
+
+# Generate snakes and ladders
+def generate_snakes_and_ladders():
+    snakes = {}
+    ladders = {}
+
+    while len(snakes) < 5:
+        start = random.randint(11, 90)
+        end = start - random.randint(1, 10)
+        if end > 0 and start not in snakes and start not in ladders:
+            snakes[start] = end
+
+    while len(ladders) < 5:
+        start = random.randint(1, 89)
+        end = start + random.randint(1, 10)
+        if end <= 100 and start not in ladders and start not in snakes:
+            ladders[start] = end
+
+    return snakes, ladders
+
+snakes, ladders = generate_snakes_and_ladders()
+
+# Draw snakes and ladders using lines
+def draw_snakes_and_ladders():
+    for start, end in snakes.items():
+        start_pos = get_coordinates(start)
+        end_pos = get_coordinates(end)
+        pygame.draw.line(screen, RED, start_pos, end_pos, 5)
+
+    for start, end in ladders.items():
+        start_pos = get_coordinates(start)
+        end_pos = get_coordinates(end)
+        pygame.draw.line(screen, GREEN, start_pos, end_pos, 5)
+
+# Convert board index to screen coordinates
+def get_coordinates(position):
+    position -= 1
+    row = position // GRID_SIZE
+    col = position % GRID_SIZE
+
+    x = (col * CELL_SIZE) + (CELL_SIZE // 2)
+    y = ((GRID_SIZE - 1 - row) * CELL_SIZE) + (CELL_SIZE // 2) + GRID_Y_OFFSET
+    return x, y
+
+# Smooth movement animation
+def animate_movement(start, end, player_color):
+    step = 1 if end > start else -1
+    for position in range(start, end + step, step):
+        screen.fill(WHITE)
+        draw_board(action_positions)
+        draw_snakes_and_ladders()
+        draw_players()
+        draw_chat()
+
+        x, y = get_coordinates(position)
+        pygame.draw.circle(screen, player_color, (x, y), CELL_SIZE // 4)
+        pygame.display.flip()
+        time.sleep(0.2)
+
+# Load actions
+def load_actions():
+    actions = {"Seduction": ["Action A"], "Excitement": ["Action B"], "Plateau": ["Action C"], "Surrender": ["Action D"]}
+    return actions
+
+actions = load_actions()
+
+def get_action(position):
+    if 1 <= position <= 30:
+        return random.choice(actions["Seduction"])
+    elif 31 <= position <= 60:
+        return random.choice(actions["Excitement"])
+    elif 61 <= position <= 90:
+        return random.choice(actions["Plateau"])
+    else:
+        return random.choice(actions["Surrender"])
+
+# Initialize players
+def initialize_players():
+    while True:
+        try:
+            num_players = int(input("Enter the number of players (2-4): "))
+            if num_players == 2:
+                player_names = ["Eros", "Psyche"]
+                update_chat("Welcome Eros and Psyche!")
+            elif num_players == 3:
+                player_names = ["Ares", "Aphrodite", "Eos"]
+                update_chat("Welcome Ares, Aphrodite, and Eos!")
+            elif num_players == 4:
+                player_names = ["Zeus", "Hera", "Semele", "Io"]
+                update_chat("Welcome Zeus, Hera, Semele, and Io!")
+            else:
+                print("Invalid number of players. Please choose between 2 and 4.")
+                continue
+            break
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+
+    player_positions = [1 for _ in range(num_players)]
+    player_colors = [BLUE, YELLOW, GREEN, RED][:num_players]
+    return player_names, player_positions, player_colors
+
+players, player_positions, player_colors = initialize_players()
+current_player_idx = 0
+
+def get_dice_value():
+    input_value = ""
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN and input_value.isdigit() and 1 <= int(input_value) <= 6:
+                    return int(input_value)
+                elif event.key == pygame.K_BACKSPACE:
+                    input_value = input_value[:-1]
+                else:
+                    input_value += event.unicode
+
+        screen.fill(WHITE)
+        draw_board(action_positions)
+        draw_snakes_and_ladders()
+        draw_players()
+        draw_chat()
+        input_text = FONT.render(f"Enter Dice Value (1-6): {input_value}", True, BLACK)
+        screen.blit(input_text, (int(SCREEN_WIDTH * 0.7) + 10, SCREEN_HEIGHT - 40))
+        pygame.display.flip()
+
+# Draw players
+def draw_players():
+    for i, position in enumerate(player_positions):
+        x, y = get_coordinates(position)
+        pygame.draw.circle(screen, player_colors[i], (x, y), CELL_SIZE // 4)
+
+# Main game loop
+running = True
+winner = None
+action_positions = {}
+while running:
+    screen.fill(WHITE)
+    draw_board(action_positions)
+    draw_snakes_and_ladders()
+    draw_players()
+    draw_chat()
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+    if not winner:
+        dice_value = get_dice_value()
+        current_player = current_player_idx % len(players)
+        six_count = 0
+        turn_total = 0
+
+        while True:
+            if dice_value == 6:
+                six_count += 1
+                update_chat(f"{players[current_player]} rolled a 6! Another chance!")
+                if six_count == 3:
+                    update_chat(f"{players[current_player]} rolled three 6s! Turn skipped.")
+                    break
+                dice_value = get_dice_value()
+            else:
+                turn_total += 6 * six_count + dice_value
+                new_pos = player_positions[current_player] + turn_total
+
+                if new_pos > 100:
+                    update_chat("Roll exceeds 100! Stay in place.")
+                else:
+                    animate_movement(player_positions[current_player], new_pos, player_colors[current_player])
+                    player_positions[current_player] = new_pos
+
+                if new_pos in snakes:
+                    update_chat(f"{players[current_player]} encountered a snake!")
+                    animate_movement(new_pos, snakes[new_pos], RED)
+                    player_positions[current_player] = snakes[new_pos]
+                elif new_pos in ladders:
+                    update_chat(f"{players[current_player]} climbed a ladder!")
+                    animate_movement(new_pos, ladders[new_pos], GREEN)
+                    player_positions[current_player] = ladders[new_pos]
+
+                action = get_action(player_positions[current_player])
+                action_positions[player_positions[current_player]] = action
+                update_chat(f"{players[current_player]}: {action}")
+
+                if player_positions[current_player] == 100:
+                    winner = players[current_player]
+                break
+
+        current_player_idx += 1
+
+    if winner:
+        winner_text = FONT.render(f"{winner} wins!", True, BLACK)
+        screen.blit(winner_text, (SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2))
+
+    pygame.display.flip()
+
+pygame.quit()
