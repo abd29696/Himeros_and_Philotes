@@ -9,8 +9,8 @@ pygame.init()
 SCREEN_WIDTH, SCREEN_HEIGHT = 1200, 800
 GRID_SIZE = 10
 CELL_SIZE = int((SCREEN_WIDTH * 0.7) // GRID_SIZE) - 5  # Adjusted cell size
-GRID_Y_OFFSET = 10  # Add top margin for visibility
-FONT = pygame.font.Font(None, 28)
+GRID_Y_OFFSET = 0  # Add top margin for visibility
+FONT = pygame.font.Font(None, 21)
 
 # Colors
 WHITE = (255, 255, 255)
@@ -39,13 +39,16 @@ def draw_chat():
 
     for i, line in enumerate(chat_panel):
         text = FONT.render(line, True, BLACK)
-        screen.blit(text, (panel_x + 10, 10 + i * 25))
+        screen.blit(text, (panel_x + 5, 10 + i * 25))  # Reduced margin to remove gap
 
 # Create the board
 def draw_board(action_positions):
     for row in range(GRID_SIZE):
         for col in range(GRID_SIZE):
-            position = (GRID_SIZE * (GRID_SIZE - row - 1)) + col + 1
+            if row % 2 == 0:  # Even rows go right to left
+                position = (GRID_SIZE * (GRID_SIZE - row - 1)) + (GRID_SIZE - col - 1) + 1
+            else:  # Odd rows go left to right
+                position = (GRID_SIZE * (GRID_SIZE - row - 1)) + col + 1
 
             rect = pygame.Rect(col * CELL_SIZE, row * CELL_SIZE + GRID_Y_OFFSET, CELL_SIZE, CELL_SIZE)
             pygame.draw.rect(screen, WHITE, rect)
@@ -95,7 +98,10 @@ def draw_snakes_and_ladders():
 def get_coordinates(position):
     position -= 1
     row = position // GRID_SIZE
-    col = position % GRID_SIZE
+    if row % 2 == 0:  # Even rows go right to left
+        col = position % GRID_SIZE
+    else:  # Odd rows go left to right
+        col = GRID_SIZE - 1 - (position % GRID_SIZE)
 
     x = (col * CELL_SIZE) + (CELL_SIZE // 2)
     y = ((GRID_SIZE - 1 - row) * CELL_SIZE) + (CELL_SIZE // 2) + GRID_Y_OFFSET
@@ -183,7 +189,7 @@ def get_dice_value():
         draw_players()
         draw_chat()
         input_text = FONT.render(f"Enter Dice Value (1-6): {input_value}", True, BLACK)
-        screen.blit(input_text, (int(SCREEN_WIDTH * 0.7) + 10, SCREEN_HEIGHT - 40))
+        screen.blit(input_text, (int(SCREEN_WIDTH * 0.7) + 5, SCREEN_HEIGHT - 40))  # Reduced margin
         pygame.display.flip()
 
 # Draw players
