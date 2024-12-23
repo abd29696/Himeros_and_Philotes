@@ -21,6 +21,10 @@ GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
 
+# Load background image
+BACKGROUND_IMAGE = pygame.image.load("bg/1.jpg")
+BACKGROUND_IMAGE = pygame.transform.scale(BACKGROUND_IMAGE, (SCREEN_WIDTH, SCREEN_HEIGHT))
+
 # Initialize screen
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Snakes and Ladders")
@@ -33,31 +37,6 @@ def update_chat(message):
         chat_panel.pop(0)
 
 def draw_timer(countdown_time):
-    remaining_time = max(0, int(countdown_time - time.time()))
-    minutes = remaining_time // 60
-    seconds = remaining_time % 60
-    timer_text = TIMER_FONT.render(f"Action Time Left: {minutes:02}:{seconds:02}", True, BLACK)
-    panel_x = int(SCREEN_WIDTH * 0.7)
-    timer_height = int(SCREEN_HEIGHT * 0.1)  # 10% of the screen height
-    screen.blit(timer_text, (panel_x + 10, 10))
-
-def draw_chat():
-    panel_x = int(SCREEN_WIDTH * 0.7)
-    panel_width = SCREEN_WIDTH - panel_x
-    timer_height = int(SCREEN_HEIGHT * 0.1)
-    chat_y_offset = timer_height
-
-    # Draw the upper section for the timer
-    pygame.draw.rect(screen, WHITE, (panel_x, 0, panel_width, timer_height))
-    pygame.draw.rect(screen, BLACK, (panel_x, 0, panel_width, timer_height), 2)
-
-    # Draw the lower section for the chat
-    pygame.draw.rect(screen, WHITE, (panel_x, chat_y_offset, panel_width, SCREEN_HEIGHT - chat_y_offset))
-    pygame.draw.rect(screen, BLACK, (panel_x, chat_y_offset, panel_width, SCREEN_HEIGHT - chat_y_offset), 2)
-
-    for i, line in enumerate(chat_panel):
-        text = FONT.render(line, True, BLACK)
-        screen.blit(text, (panel_x + 5, chat_y_offset + 10 + i * 20))  # Adjusted line spacing for smaller font
     remaining_time = max(0, int(countdown_time - time.time()))
     minutes = remaining_time // 60
     seconds = remaining_time % 60
@@ -82,8 +61,12 @@ def draw_chat():
         text = FONT.render(line, True, BLACK)
         screen.blit(text, (panel_x + 5, chat_y_offset + 10 + i * 20))  # Adjusted line spacing for smaller font
 
-# Create the board
+# Create the board with semi-transparent overlay
 def draw_board(action_positions):
+    overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+    overlay.fill((255, 255, 255, 29))  # 50% opacity
+    screen.blit(overlay, (0, 0))
+
     for row in range(GRID_SIZE):
         for col in range(GRID_SIZE):
             if row % 2 == 0:  # Even rows go right to left
@@ -92,8 +75,7 @@ def draw_board(action_positions):
                 position = (GRID_SIZE * (GRID_SIZE - row - 1)) + col + 1
 
             rect = pygame.Rect(col * CELL_SIZE, row * CELL_SIZE + GRID_Y_OFFSET, CELL_SIZE, CELL_SIZE)
-            pygame.draw.rect(screen, WHITE, rect)
-            pygame.draw.rect(screen, BLACK, rect, 1)
+            pygame.draw.rect(screen, WHITE, rect, 1)  # Draw only the border for better visibility
 
             if position in action_positions:
                 text = FONT.render(action_positions[position], True, BLACK)
@@ -123,17 +105,23 @@ def generate_snakes_and_ladders():
 
 snakes, ladders = generate_snakes_and_ladders()
 
-# Draw snakes and ladders using lines
-def draw_snakes_and_ladders():
+# Draw snakes and ladders using animations
+def draw_snakes_and_ladders_animation(frame_count):
     for start, end in snakes.items():
         start_pos = get_coordinates(start)
         end_pos = get_coordinates(end)
-        pygame.draw.line(screen, RED, start_pos, end_pos, 5)
+
+        # Create a slithering snake effect by changing line thickness
+        thickness = 5 + (frame_count % 5)
+        pygame.draw.line(screen, RED, start_pos, end_pos, thickness)
 
     for start, end in ladders.items():
         start_pos = get_coordinates(start)
         end_pos = get_coordinates(end)
-        pygame.draw.line(screen, GREEN, start_pos, end_pos, 5)
+
+        # Create a shimmering ladder effect by alternating colors
+        color = (0, 255, 255) if (frame_count // 10) % 2 == 0 else (0, 200, 200)
+        pygame.draw.line(screen, color, start_pos, end_pos, 5)
 
 # Convert board index to screen coordinates
 def get_coordinates(position):
@@ -152,9 +140,9 @@ def get_coordinates(position):
 def animate_movement(start, end, player_color):
     step = 1 if end > start else -1
     for position in range(start, end + step, step):
-        screen.fill(WHITE)
+        screen.blit(BACKGROUND_IMAGE, (0, 0))
         draw_board(action_positions)
-        draw_snakes_and_ladders()
+        draw_snakes_and_ladders_animation(pygame.time.get_ticks())
         draw_players()
         draw_chat()
         draw_timer(countdown_end)
@@ -251,9 +239,9 @@ def get_dice_value():
                 else:
                     input_value += event.unicode
 
-        screen.fill(WHITE)
+        screen.blit(BACKGROUND_IMAGE, (0, 0))
         draw_board(action_positions)
-        draw_snakes_and_ladders()
+        draw_snakes_and_ladders_animation(pygame.time.get_ticks())
         draw_players()
         draw_chat()
         draw_timer(countdown_end)
@@ -271,11 +259,11 @@ def draw_players():
 running = True
 winner = None
 action_positions = {}
-countdown_end = time.time()
+countdown_end = time.time() + 10
 while running:
-    screen.fill(WHITE)
+    screen.blit(BACKGROUND_IMAGE, (0, 0))
     draw_board(action_positions)
-    draw_snakes_and_ladders()
+    draw_snakes_and_ladders_animation(pygame.time.get_ticks())
     draw_players()
     draw_chat()
     draw_timer(countdown_end)
