@@ -6,12 +6,12 @@ import time
 pygame.init()
 
 # Screen dimensions
-SCREEN_WIDTH, SCREEN_HEIGHT = 1200, 800
+SCREEN_WIDTH, SCREEN_HEIGHT = 1000, 700
 GRID_SIZE = 10
-CELL_SIZE = int((SCREEN_WIDTH * 0.7) // GRID_SIZE) - 5  # Adjusted cell size
-GRID_Y_OFFSET = 10  # Add top margin for visibility
-FONT = pygame.font.Font(None, 21)  # Reduced font size for chat
-TIMER_FONT = pygame.font.Font(None, 21)  # Larger font for timer
+CELL_SIZE = int((SCREEN_WIDTH * 0.7) // GRID_SIZE)  # Adjusted cell size
+GRID_Y_OFFSET = 0  # Removed top margin
+FONT = pygame.font.Font(None, 20)  # Slightly reduced font size for chat
+TIMER_FONT = pygame.font.Font(None, 20)  # Slightly reduced font size for timer
 
 # Colors
 WHITE = (255, 255, 255)
@@ -21,9 +21,28 @@ GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
 
-# Load background image
-BACKGROUND_IMAGE = pygame.image.load("bg/1.jpg")
-BACKGROUND_IMAGE = pygame.transform.scale(BACKGROUND_IMAGE, (SCREEN_WIDTH, SCREEN_HEIGHT))
+PLAYER_IMAGES = []
+
+def load_player_images(num_players):
+    if num_players == 2:
+        return [
+            pygame.transform.scale(pygame.image.load("char/eros.png"), (CELL_SIZE, CELL_SIZE)),
+            pygame.transform.scale(pygame.image.load("char/psyche.png"), (CELL_SIZE, CELL_SIZE))
+        ]
+    elif num_players == 3:
+        return [
+            pygame.transform.scale(pygame.image.load("char/ares.png"), (CELL_SIZE, CELL_SIZE)),
+            pygame.transform.scale(pygame.image.load("char/aphrodite.png"), (CELL_SIZE, CELL_SIZE)),
+            pygame.transform.scale(pygame.image.load("char/eos.png"), (CELL_SIZE, CELL_SIZE))
+        ]
+    elif num_players == 4:
+        return [
+            pygame.transform.scale(pygame.image.load("char/zeus.png"), (CELL_SIZE, CELL_SIZE)),
+            pygame.transform.scale(pygame.image.load("char/hera.png"), (CELL_SIZE, CELL_SIZE)),
+            pygame.transform.scale(pygame.image.load("char/semele.png"), (CELL_SIZE, CELL_SIZE)),
+            pygame.transform.scale(pygame.image.load("char/lo.png"), (CELL_SIZE, CELL_SIZE))
+        ]
+    return []
 
 # Initialize screen
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -33,40 +52,45 @@ pygame.display.set_caption("Snakes and Ladders")
 chat_panel = []
 def update_chat(message):
     chat_panel.append(message)
-    if len(chat_panel) > 12:
+    if len(chat_panel) > 15:
         chat_panel.pop(0)
 
 def draw_timer(countdown_time):
     remaining_time = max(0, int(countdown_time - time.time()))
     minutes = remaining_time // 60
     seconds = remaining_time % 60
-    timer_text = TIMER_FONT.render(f"Action Time Left: {minutes:02}:{seconds:02}", True, BLACK)
+    timer_text = TIMER_FONT.render(f"Time Left: {minutes:02}:{seconds:02}", True, BLACK)
     panel_x = int(SCREEN_WIDTH * 0.7)
     screen.blit(timer_text, (panel_x + 10, 10))
 
 def draw_chat():
     panel_x = int(SCREEN_WIDTH * 0.7)
     panel_width = SCREEN_WIDTH - panel_x
-    chat_y_offset = SCREEN_HEIGHT // 10
+    chat_y_offset = int(SCREEN_HEIGHT * 0.1)
 
     # Draw the upper section for the timer
     pygame.draw.rect(screen, WHITE, (panel_x, 0, panel_width, chat_y_offset))
-    pygame.draw.rect(screen, BLACK, (panel_x, 0, panel_width, chat_y_offset), 2)
+    pygame.draw.rect(screen, BLACK, (panel_x, 0, panel_width, chat_y_offset), 1)
 
     # Draw the lower section for the chat
     pygame.draw.rect(screen, WHITE, (panel_x, chat_y_offset, panel_width, SCREEN_HEIGHT - chat_y_offset))
-    pygame.draw.rect(screen, BLACK, (panel_x, chat_y_offset, panel_width, SCREEN_HEIGHT - chat_y_offset), 2)
+    pygame.draw.rect(screen, BLACK, (panel_x, chat_y_offset, panel_width, SCREEN_HEIGHT - chat_y_offset), 1)
 
     for i, line in enumerate(chat_panel):
         text = FONT.render(line, True, BLACK)
-        screen.blit(text, (panel_x + 5, chat_y_offset + 10 + i * 20))  # Adjusted line spacing for smaller font
+        screen.blit(text, (panel_x + 5, chat_y_offset + 10 + i * 15))
 
-# Create the board with semi-transparent overlay
+# Create a gradient background
+def draw_gradient_background():
+    for y in range(SCREEN_HEIGHT):
+        color_ratio = y / SCREEN_HEIGHT
+        r = int((1 - color_ratio) * 144 + color_ratio * 244)  # Pastel gradient from green to red
+        g = int((1 - color_ratio) * 238 + color_ratio * 83)
+        b = int((1 - color_ratio) * 144 + color_ratio * 83)
+        pygame.draw.line(screen, (r, g, b), (0, y), (int(SCREEN_WIDTH * 0.7), y))
+
+# Create the board
 def draw_board(action_positions):
-    overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
-    overlay.fill((255, 255, 255, 29))  # 50% opacity
-    screen.blit(overlay, (0, 0))
-
     for row in range(GRID_SIZE):
         for col in range(GRID_SIZE):
             if row % 2 == 0:  # Even rows go right to left
@@ -75,14 +99,15 @@ def draw_board(action_positions):
                 position = (GRID_SIZE * (GRID_SIZE - row - 1)) + col + 1
 
             rect = pygame.Rect(col * CELL_SIZE, row * CELL_SIZE + GRID_Y_OFFSET, CELL_SIZE, CELL_SIZE)
-            pygame.draw.rect(screen, WHITE, rect, 1)  # Draw only the border for better visibility
+            pygame.draw.rect(screen, WHITE, rect)
+            pygame.draw.rect(screen, BLACK, rect, 1)
 
             if position in action_positions:
                 text = FONT.render(action_positions[position], True, BLACK)
             else:
                 text = FONT.render(str(position), True, BLACK)
 
-            screen.blit(text, (rect.x + 10, rect.y + 10))
+            screen.blit(text, (rect.x + 5, rect.y + 5))
 
 # Generate snakes and ladders
 def generate_snakes_and_ladders():
@@ -105,23 +130,19 @@ def generate_snakes_and_ladders():
 
 snakes, ladders = generate_snakes_and_ladders()
 
-# Draw snakes and ladders using animations
-def draw_snakes_and_ladders_animation(frame_count):
+# Draw snakes and ladders using lines
+def draw_snakes_and_ladders():
     for start, end in snakes.items():
         start_pos = get_coordinates(start)
         end_pos = get_coordinates(end)
-
-        # Create a slithering snake effect by changing line thickness
-        thickness = 5 + (frame_count % 5)
-        pygame.draw.line(screen, RED, start_pos, end_pos, thickness)
+        pygame.draw.line(screen, RED, (start_pos[0] + CELL_SIZE // 2, start_pos[1] + CELL_SIZE // 2),
+                         (end_pos[0] + CELL_SIZE // 2, end_pos[1] + CELL_SIZE // 2), 5)
 
     for start, end in ladders.items():
         start_pos = get_coordinates(start)
         end_pos = get_coordinates(end)
-
-        # Create a shimmering ladder effect by alternating colors
-        color = (0, 255, 255) if (frame_count // 10) % 2 == 0 else (0, 200, 200)
-        pygame.draw.line(screen, color, start_pos, end_pos, 5)
+        pygame.draw.line(screen, GREEN, (start_pos[0] + CELL_SIZE // 2, start_pos[1] + CELL_SIZE // 2),
+                         (end_pos[0] + CELL_SIZE // 2, end_pos[1] + CELL_SIZE // 2), 5)
 
 # Convert board index to screen coordinates
 def get_coordinates(position):
@@ -132,23 +153,23 @@ def get_coordinates(position):
     else:  # Odd rows go left to right
         col = GRID_SIZE - 1 - (position % GRID_SIZE)
 
-    x = (col * CELL_SIZE) + (CELL_SIZE // 2)
-    y = ((GRID_SIZE - 1 - row) * CELL_SIZE) + (CELL_SIZE // 2) + GRID_Y_OFFSET
+    x = col * CELL_SIZE
+    y = (GRID_SIZE - 1 - row) * CELL_SIZE
     return x, y
 
 # Smooth movement animation
-def animate_movement(start, end, player_color):
+def animate_movement(start, end, player_index):
     step = 1 if end > start else -1
     for position in range(start, end + step, step):
-        screen.blit(BACKGROUND_IMAGE, (0, 0))
+        draw_gradient_background()
         draw_board(action_positions)
-        draw_snakes_and_ladders_animation(pygame.time.get_ticks())
+        draw_snakes_and_ladders()
         draw_players()
         draw_chat()
         draw_timer(countdown_end)
 
         x, y = get_coordinates(position)
-        pygame.draw.circle(screen, player_color, (x, y), CELL_SIZE // 4)
+        screen.blit(PLAYER_IMAGES[player_index], (x, y))  # Align image with cell
         pygame.display.flip()
         time.sleep(0.2)
 
@@ -196,18 +217,22 @@ def get_action(position):
 
 # Initialize players
 def initialize_players():
+    global PLAYER_IMAGES
     while True:
         try:
             num_players = int(input("Enter the number of players (2-4): "))
             if num_players == 2:
                 player_names = ["Eros", "Psyche"]
                 update_chat("Welcome Eros and Psyche!")
+                PLAYER_IMAGES = load_player_images(2)
             elif num_players == 3:
                 player_names = ["Ares", "Aphrodite", "Eos"]
                 update_chat("Welcome Ares, Aphrodite, and Eos!")
+                PLAYER_IMAGES = load_player_images(3)
             elif num_players == 4:
                 player_names = ["Zeus", "Hera", "Semele", "Io"]
                 update_chat("Welcome Zeus, Hera, Semele, and Io!")
+                PLAYER_IMAGES = load_player_images(4)
             else:
                 print("Invalid number of players. Please choose between 2 and 4.")
                 continue
@@ -216,10 +241,9 @@ def initialize_players():
             print("Invalid input. Please enter a number.")
 
     player_positions = [1 for _ in range(num_players)]
-    player_colors = [BLUE, YELLOW, GREEN, RED][:num_players]
-    return player_names, player_positions, player_colors
+    return player_names, player_positions
 
-players, player_positions, player_colors = initialize_players()
+players, player_positions = initialize_players()
 current_player_idx = 0
 
 def get_dice_value():
@@ -239,9 +263,9 @@ def get_dice_value():
                 else:
                     input_value += event.unicode
 
-        screen.blit(BACKGROUND_IMAGE, (0, 0))
+        draw_gradient_background()
         draw_board(action_positions)
-        draw_snakes_and_ladders_animation(pygame.time.get_ticks())
+        draw_snakes_and_ladders()
         draw_players()
         draw_chat()
         draw_timer(countdown_end)
@@ -253,7 +277,7 @@ def get_dice_value():
 def draw_players():
     for i, position in enumerate(player_positions):
         x, y = get_coordinates(position)
-        pygame.draw.circle(screen, player_colors[i], (x, y), CELL_SIZE // 4)
+        screen.blit(PLAYER_IMAGES[i], (x, y))  # Align image with cell
 
 # Main game loop
 running = True
@@ -261,9 +285,9 @@ winner = None
 action_positions = {}
 countdown_end = time.time() + 10
 while running:
-    screen.blit(BACKGROUND_IMAGE, (0, 0))
+    draw_gradient_background()
     draw_board(action_positions)
-    draw_snakes_and_ladders_animation(pygame.time.get_ticks())
+    draw_snakes_and_ladders()
     draw_players()
     draw_chat()
     draw_timer(countdown_end)
@@ -274,60 +298,56 @@ while running:
 
     if not winner:
         dice_value = get_dice_value()
-        current_player = current_player_idx % len(players)
+        current_player = players[current_player_idx % len(players)]
+        update_chat(f"{current_player} rolled a {dice_value}!")
+
+        # Logic for rolling 6s
         six_count = 0
         turn_total = 0
 
         while True:
             if dice_value == 6:
                 six_count += 1
-                update_chat(f"{players[current_player]} rolled a 6! Another chance!")
+                update_chat(f"{current_player} rolled a 6! Another chance!")
                 if six_count == 3:
-                    update_chat(f"{players[current_player]} rolled three 6s! Turn skipped.")
+                    update_chat(f"{current_player} rolled three 6s! Turn skipped.")
                     break
                 dice_value = get_dice_value()
             else:
                 turn_total += 6 * six_count + dice_value
-                new_pos = player_positions[current_player] + turn_total
+                new_pos = player_positions[current_player_idx] + turn_total
 
                 if new_pos > 100:
                     update_chat("Roll exceeds 100! Stay in place.")
                 else:
-                    animate_movement(player_positions[current_player], new_pos, player_colors[current_player])
-                    player_positions[current_player] = new_pos
+                    animate_movement(player_positions[current_player_idx], new_pos, current_player_idx)
+                    player_positions[current_player_idx] = new_pos
 
-                    # Update timer to the new position
-                    countdown_end = time.time() + (player_positions[current_player] * 2)
+                    countdown_end = time.time() + player_positions[current_player_idx] * 2  # Update timer
 
-                if new_pos in snakes:
-                    update_chat(f"{players[current_player]} encountered a snake!")
-                    animate_movement(new_pos, snakes[new_pos], RED)
-                    player_positions[current_player] = snakes[new_pos]
+                    if new_pos in snakes:
+                        update_chat(f"{current_player} encountered a snake! Sliding down.")
+                        animate_movement(new_pos, snakes[new_pos], current_player_idx)
+                        player_positions[current_player_idx] = snakes[new_pos]
+                        countdown_end = time.time() + player_positions[current_player_idx] * 2
 
-                    # Update timer for snake end position
-                    countdown_end = time.time() + (player_positions[current_player] * 2)
+                    elif new_pos in ladders:
+                        update_chat(f"{current_player} climbed a ladder! Moving up.")
+                        animate_movement(new_pos, ladders[new_pos], current_player_idx)
+                        player_positions[current_player_idx] = ladders[new_pos]
+                        countdown_end = time.time() + player_positions[current_player_idx] * 2
 
-                elif new_pos in ladders:
-                    update_chat(f"{players[current_player]} climbed a ladder!")
-                    animate_movement(new_pos, ladders[new_pos], GREEN)
-                    player_positions[current_player] = ladders[new_pos]
+                    action = get_action(player_positions[current_player_idx])
+                    action_positions[player_positions[current_player_idx]] = action
+                    update_chat(f"{current_player} performs: {action}")
 
-                    # Update timer for ladder end position
-                    countdown_end = time.time() + (player_positions[current_player] * 2)
+                    if player_positions[current_player_idx] == 100:
+                        winner = current_player
+                        update_chat(f"{winner} wins the game! Congratulations!")
 
-                action = get_action(player_positions[current_player])
-                action_positions[player_positions[current_player]] = action
-                update_chat(f"{players[current_player]}: {action}")
-
-                if player_positions[current_player] == 100:
-                    winner = players[current_player]
                 break
 
-        current_player_idx += 1
-
-    if winner:
-        winner_text = FONT.render(f"{winner} wins!", True, BLACK)
-        screen.blit(winner_text, (SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2))
+        current_player_idx = (current_player_idx + 1) % len(players)
 
     pygame.display.flip()
 
