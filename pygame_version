@@ -6,7 +6,7 @@ import time
 pygame.init()
 
 # Screen dimensions
-SCREEN_WIDTH, SCREEN_HEIGHT = 1000, 700
+SCREEN_WIDTH, SCREEN_HEIGHT = 1200, 840
 GRID_SIZE = 10
 CELL_SIZE = int((SCREEN_WIDTH * 0.7) // GRID_SIZE)  # Adjusted cell size
 GRID_Y_OFFSET = 0  # Removed top margin
@@ -20,27 +20,31 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
+GOLD = (255, 215, 0)
 
 PLAYER_IMAGES = []
 
 def load_player_images(num_players):
+    def load_high_quality_image(path):
+        image = pygame.image.load(path).convert_alpha()
+        return pygame.transform.smoothscale(image, (CELL_SIZE, CELL_SIZE))
     if num_players == 2:
         return [
-            pygame.transform.scale(pygame.image.load("char/eros.png"), (CELL_SIZE, CELL_SIZE)),
-            pygame.transform.scale(pygame.image.load("char/psyche.png"), (CELL_SIZE, CELL_SIZE))
+            pygame.transform.smoothscale(pygame.image.load("char/eros.png"), (CELL_SIZE, CELL_SIZE)),
+            pygame.transform.smoothscale(pygame.image.load("char/psyche.png"), (CELL_SIZE, CELL_SIZE))
         ]
     elif num_players == 3:
         return [
-            pygame.transform.scale(pygame.image.load("char/ares.png"), (CELL_SIZE, CELL_SIZE)),
-            pygame.transform.scale(pygame.image.load("char/aphrodite.png"), (CELL_SIZE, CELL_SIZE)),
-            pygame.transform.scale(pygame.image.load("char/eos.png"), (CELL_SIZE, CELL_SIZE))
+            pygame.transform.smoothscale(pygame.image.load("char/ares.png"), (CELL_SIZE, CELL_SIZE)),
+            pygame.transform.smoothscale(pygame.image.load("char/aphrodite.png"), (CELL_SIZE, CELL_SIZE)),
+            pygame.transform.smoothscale(pygame.image.load("char/eos.png"), (CELL_SIZE, CELL_SIZE))
         ]
     elif num_players == 4:
         return [
-            pygame.transform.scale(pygame.image.load("char/zeus.png"), (CELL_SIZE, CELL_SIZE)),
-            pygame.transform.scale(pygame.image.load("char/hera.png"), (CELL_SIZE, CELL_SIZE)),
-            pygame.transform.scale(pygame.image.load("char/semele.png"), (CELL_SIZE, CELL_SIZE)),
-            pygame.transform.scale(pygame.image.load("char/lo.png"), (CELL_SIZE, CELL_SIZE))
+            pygame.transform.smoothscale(pygame.image.load("char/zeus.png"), (CELL_SIZE, CELL_SIZE)),
+            pygame.transform.smoothscale(pygame.image.load("char/hera.png"), (CELL_SIZE, CELL_SIZE)),
+            pygame.transform.smoothscale(pygame.image.load("char/semele.png"), (CELL_SIZE, CELL_SIZE)),
+            pygame.transform.smoothscale(pygame.image.load("char/io.png"), (CELL_SIZE, CELL_SIZE))
         ]
     return []
 
@@ -130,19 +134,29 @@ def generate_snakes_and_ladders():
 
 snakes, ladders = generate_snakes_and_ladders()
 
-# Draw snakes and ladders using lines
+# Draw snakes and ladders using custom styles
 def draw_snakes_and_ladders():
     for start, end in snakes.items():
         start_pos = get_coordinates(start)
         end_pos = get_coordinates(end)
-        pygame.draw.line(screen, RED, (start_pos[0] + CELL_SIZE // 2, start_pos[1] + CELL_SIZE // 2),
-                         (end_pos[0] + CELL_SIZE // 2, end_pos[1] + CELL_SIZE // 2), 5)
+
+        # Create curvy wavy effect for snakes
+        num_segments = 10  # Number of segments for the curve
+        x_diff = (end_pos[0] - start_pos[0]) / num_segments
+        y_diff = (end_pos[1] - start_pos[1]) / num_segments
+        points = []
+        for i in range(num_segments + 1):
+            x = start_pos[0] + i * x_diff + CELL_SIZE // 6 * (-1)**i
+            y = start_pos[1] + i * y_diff
+            points.append((x + CELL_SIZE // 2, y + CELL_SIZE // 2))  # Center-align the wave
+
+        pygame.draw.lines(screen, BLACK, False, points, 8)  # Draw the wavy snake
 
     for start, end in ladders.items():
         start_pos = get_coordinates(start)
         end_pos = get_coordinates(end)
-        pygame.draw.line(screen, GREEN, (start_pos[0] + CELL_SIZE // 2, start_pos[1] + CELL_SIZE // 2),
-                         (end_pos[0] + CELL_SIZE // 2, end_pos[1] + CELL_SIZE // 2), 5)
+        pygame.draw.line(screen, GOLD, (start_pos[0] + CELL_SIZE // 2, start_pos[1] + CELL_SIZE // 2),
+                         (end_pos[0] + CELL_SIZE // 2, end_pos[1] + CELL_SIZE // 2), 5)  # Shiny golden ladder
 
 # Convert board index to screen coordinates
 def get_coordinates(position):
@@ -283,7 +297,7 @@ def draw_players():
 running = True
 winner = None
 action_positions = {}
-countdown_end = time.time() + 10
+countdown_end = time.time()
 while running:
     draw_gradient_background()
     draw_board(action_positions)
