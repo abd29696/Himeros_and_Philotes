@@ -31,6 +31,11 @@ MEDUSA_BACKGROUND = pygame.transform.smoothscale(MEDUSA_BACKGROUND, (int(SCREEN_
 HEDONE_BACKGROUND = pygame.image.load("char/hedone.png")
 HEDONE_BACKGROUND = pygame.transform.smoothscale(HEDONE_BACKGROUND, (int(SCREEN_WIDTH * 0.7), SCREEN_HEIGHT))
 
+INTRO_IMAGES = {
+    2: pygame.transform.smoothscale(pygame.image.load("char/ep2.png"), (int(SCREEN_WIDTH * 0.7), SCREEN_HEIGHT)),
+    3: pygame.transform.smoothscale(pygame.image.load("char/aee.png"), (int(SCREEN_WIDTH * 0.7), SCREEN_HEIGHT)),
+    4: pygame.transform.smoothscale(pygame.image.load("char/zhsl.png"), (int(SCREEN_WIDTH * 0.7), SCREEN_HEIGHT))
+}
 
 def load_player_images(num_players):
     def load_high_quality_image(path):
@@ -137,27 +142,36 @@ snakes, ladders = generate_snakes_and_ladders()
 
 # Draw snakes and ladders using custom styles
 def draw_snakes_and_ladders():
-    for start, end in snakes.items():
-        start_pos = get_coordinates(start)
-        end_pos = get_coordinates(end)
-
-        # Create curvy wavy effect for snakes
-        num_segments = 10  # Number of segments for the curve
-        x_diff = (end_pos[0] - start_pos[0]) / num_segments
-        y_diff = (end_pos[1] - start_pos[1]) / num_segments
-        points = []
-        for i in range(num_segments + 1):
-            x = start_pos[0] + i * x_diff + CELL_SIZE // 6 * (-1)**i
-            y = start_pos[1] + i * y_diff
-            points.append((x + CELL_SIZE // 2, y + CELL_SIZE // 2))  # Center-align the wave
-
-        pygame.draw.lines(screen, BLACK, False, points, 8)  # Draw the wavy snake
-
-    for start, end in ladders.items():
-        start_pos = get_coordinates(start)
-        end_pos = get_coordinates(end)
-        pygame.draw.line(screen, GOLD, (start_pos[0] + CELL_SIZE // 2, start_pos[1] + CELL_SIZE // 2),
-                         (end_pos[0] + CELL_SIZE // 2, end_pos[1] + CELL_SIZE // 2), 5)  # Shiny golden ladder
+    pass
+    # for start, end in snakes.items():
+    #     start_pos = get_coordinates(start)
+    #     end_pos = get_coordinates(end)
+    #
+    #     # Create curvy wavy effect for snakes
+    #     num_segments = 10  # Number of segments for the curve
+    #     x_diff = (end_pos[0] - start_pos[0]) / num_segments
+    #     y_diff = (end_pos[1] - start_pos[1]) / num_segments
+    #     points = []
+    #     for i in range(num_segments + 1):
+    #         x = start_pos[0] + i * x_diff + CELL_SIZE // 6 * (-1)**i
+    #         y = start_pos[1] + i * y_diff
+    #         points.append((x + CELL_SIZE // 2, y + CELL_SIZE // 2))  # Center-align the wave
+    #
+    #     # Snakes are now invisible
+    #     pygame.draw.lines(screen, TRANSPARENT, False, points, 8)
+    #
+    # for start, end in ladders.items():
+    #     start_pos = get_coordinates(start)
+    #     end_pos = get_coordinates(end)
+    #     # Ladders are now invisible
+    #     pygame.draw.line(screen, TRANSPARENT, (start_pos[0] + CELL_SIZE // 2, start_pos[1] + CELL_SIZE // 2),
+    #                      (end_pos[0] + CELL_SIZE // 2, end_pos[1] + CELL_SIZE // 2), 5)  # Draw the wavy snake
+    #
+    # for start, end in ladders.items():
+    #     start_pos = get_coordinates(start)
+    #     end_pos = get_coordinates(end)
+    #     pygame.draw.line(screen, GOLD, (start_pos[0] + CELL_SIZE // 2, start_pos[1] + CELL_SIZE // 2),
+    #                      (end_pos[0] + CELL_SIZE // 2, end_pos[1] + CELL_SIZE // 2), 5)  # Shiny golden ladder
 
 # Convert board index to screen coordinates
 def get_coordinates(position):
@@ -255,6 +269,12 @@ def initialize_players():
             else:
                 print("Invalid number of players. Please choose between 2 and 4.")
                 continue
+
+            # Show start image for 5 seconds
+            screen.blit(INTRO_IMAGES[num_players], (0, 0))
+            pygame.display.flip()
+            time.sleep(15)
+
             break
         except ValueError:
             print("Invalid input. Please enter a number.")
