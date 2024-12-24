@@ -10,10 +10,11 @@ SCREEN_WIDTH, SCREEN_HEIGHT = 1200, 840
 GRID_SIZE = 10
 CELL_SIZE = int((SCREEN_WIDTH * 0.7) // GRID_SIZE)  # Adjusted cell size
 GRID_Y_OFFSET = 0  # Removed top margin
-FONT = pygame.font.Font(None, 20)  # Slightly reduced font size for chat
-TIMER_FONT = pygame.font.Font(None, 20)  # Slightly reduced font size for timer
+FONT = pygame.font.Font("font/GideonRoman-Regular.ttf", 19)  # Updated font
+TIMER_FONT = pygame.font.Font("font/GideonRoman-Regular.ttf", 19)  # Updated font
 
 # Colors
+TRANSPARENT = (0, 0, 0, 3)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
@@ -24,27 +25,34 @@ GOLD = (255, 215, 0)
 
 PLAYER_IMAGES = []
 
+# Load Medusa and Hedone backgrounds
+MEDUSA_BACKGROUND = pygame.image.load("char/medusa.png")
+MEDUSA_BACKGROUND = pygame.transform.smoothscale(MEDUSA_BACKGROUND, (int(SCREEN_WIDTH * 0.7), SCREEN_HEIGHT))
+HEDONE_BACKGROUND = pygame.image.load("char/hedone.png")
+HEDONE_BACKGROUND = pygame.transform.smoothscale(HEDONE_BACKGROUND, (int(SCREEN_WIDTH * 0.7), SCREEN_HEIGHT))
+
+
 def load_player_images(num_players):
     def load_high_quality_image(path):
         image = pygame.image.load(path).convert_alpha()
         return pygame.transform.smoothscale(image, (CELL_SIZE, CELL_SIZE))
     if num_players == 2:
         return [
-            pygame.transform.smoothscale(pygame.image.load("char/eros.png"), (CELL_SIZE, CELL_SIZE)),
-            pygame.transform.smoothscale(pygame.image.load("char/psyche.png"), (CELL_SIZE, CELL_SIZE))
+            load_high_quality_image("char/eros.png"),
+            load_high_quality_image("char/psyche.png")
         ]
     elif num_players == 3:
         return [
-            pygame.transform.smoothscale(pygame.image.load("char/ares.png"), (CELL_SIZE, CELL_SIZE)),
-            pygame.transform.smoothscale(pygame.image.load("char/aphrodite.png"), (CELL_SIZE, CELL_SIZE)),
-            pygame.transform.smoothscale(pygame.image.load("char/eos.png"), (CELL_SIZE, CELL_SIZE))
+            load_high_quality_image("char/ares.png"),
+            load_high_quality_image("char/aphrodite.png"),
+            load_high_quality_image("char/eos.png")
         ]
     elif num_players == 4:
         return [
-            pygame.transform.smoothscale(pygame.image.load("char/zeus.png"), (CELL_SIZE, CELL_SIZE)),
-            pygame.transform.smoothscale(pygame.image.load("char/hera.png"), (CELL_SIZE, CELL_SIZE)),
-            pygame.transform.smoothscale(pygame.image.load("char/semele.png"), (CELL_SIZE, CELL_SIZE)),
-            pygame.transform.smoothscale(pygame.image.load("char/io.png"), (CELL_SIZE, CELL_SIZE))
+            load_high_quality_image("char/zeus.png"),
+            load_high_quality_image("char/hera.png"),
+            load_high_quality_image("char/semele.png"),
+            load_high_quality_image("char/io.png")
         ]
     return []
 
@@ -84,15 +92,6 @@ def draw_chat():
         text = FONT.render(line, True, BLACK)
         screen.blit(text, (panel_x + 5, chat_y_offset + 10 + i * 15))
 
-# Create a gradient background
-def draw_gradient_background():
-    for y in range(SCREEN_HEIGHT):
-        color_ratio = y / SCREEN_HEIGHT
-        r = int((1 - color_ratio) * 144 + color_ratio * 244)  # Pastel gradient from green to red
-        g = int((1 - color_ratio) * 238 + color_ratio * 83)
-        b = int((1 - color_ratio) * 144 + color_ratio * 83)
-        pygame.draw.line(screen, (r, g, b), (0, y), (int(SCREEN_WIDTH * 0.7), y))
-
 # Create the board
 def draw_board(action_positions):
     for row in range(GRID_SIZE):
@@ -103,7 +102,9 @@ def draw_board(action_positions):
                 position = (GRID_SIZE * (GRID_SIZE - row - 1)) + col + 1
 
             rect = pygame.Rect(col * CELL_SIZE, row * CELL_SIZE + GRID_Y_OFFSET, CELL_SIZE, CELL_SIZE)
-            pygame.draw.rect(screen, WHITE, rect)
+            overlay = pygame.Surface((CELL_SIZE, CELL_SIZE), pygame.SRCALPHA)
+            overlay.fill((173, 216, 230, 8))  # Pastel blue with 30% opacity
+            screen.blit(overlay, rect.topleft)
             pygame.draw.rect(screen, BLACK, rect, 1)
 
             if position in action_positions:
@@ -172,10 +173,14 @@ def get_coordinates(position):
     return x, y
 
 # Smooth movement animation
-def animate_movement(start, end, player_index):
+def animate_movement(start, end, player_index, background_override=None):
     step = 1 if end > start else -1
     for position in range(start, end + step, step):
-        draw_gradient_background()
+        if background_override:
+            screen.blit(background_override, (0, 0))  # Draw override background
+        else:
+            screen.fill(WHITE)  # Clear screen to white
+
         draw_board(action_positions)
         draw_snakes_and_ladders()
         draw_players()
@@ -277,7 +282,7 @@ def get_dice_value():
                 else:
                     input_value += event.unicode
 
-        draw_gradient_background()
+        screen.fill(WHITE)  # Clear screen to white
         draw_board(action_positions)
         draw_snakes_and_ladders()
         draw_players()
@@ -299,7 +304,7 @@ winner = None
 action_positions = {}
 countdown_end = time.time()
 while running:
-    draw_gradient_background()
+    screen.fill(WHITE)  # Clear screen to white
     draw_board(action_positions)
     draw_snakes_and_ladders()
     draw_players()
@@ -334,21 +339,21 @@ while running:
                 if new_pos > 100:
                     update_chat("Roll exceeds 100! Stay in place.")
                 else:
-                    animate_movement(player_positions[current_player_idx], new_pos, current_player_idx)
-                    player_positions[current_player_idx] = new_pos
-
-                    countdown_end = time.time() + player_positions[current_player_idx] * 2  # Update timer
-
                     if new_pos in snakes:
                         update_chat(f"{current_player} encountered a snake! Sliding down.")
-                        animate_movement(new_pos, snakes[new_pos], current_player_idx)
+                        animate_movement(player_positions[current_player_idx], new_pos, current_player_idx)
+                        animate_movement(new_pos, snakes[new_pos], current_player_idx, MEDUSA_BACKGROUND)
                         player_positions[current_player_idx] = snakes[new_pos]
                         countdown_end = time.time() + player_positions[current_player_idx] * 2
-
                     elif new_pos in ladders:
                         update_chat(f"{current_player} climbed a ladder! Moving up.")
-                        animate_movement(new_pos, ladders[new_pos], current_player_idx)
+                        animate_movement(player_positions[current_player_idx], new_pos, current_player_idx)
+                        animate_movement(new_pos, ladders[new_pos], current_player_idx, HEDONE_BACKGROUND)
                         player_positions[current_player_idx] = ladders[new_pos]
+                        countdown_end = time.time() + player_positions[current_player_idx] * 2
+                    else:
+                        animate_movement(player_positions[current_player_idx], new_pos, current_player_idx)
+                        player_positions[current_player_idx] = new_pos
                         countdown_end = time.time() + player_positions[current_player_idx] * 2
 
                     action = get_action(player_positions[current_player_idx])
