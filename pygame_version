@@ -1,6 +1,7 @@
 import pygame
 import random
 import time
+import cv2
 
 # Initialize Pygame
 pygame.init()
@@ -10,7 +11,9 @@ SCREEN_WIDTH, SCREEN_HEIGHT = 1200, 840
 GRID_SIZE = 10
 CELL_SIZE = int((SCREEN_WIDTH * 0.7) // GRID_SIZE)  # Adjusted cell size
 GRID_Y_OFFSET = 0  # Removed top margin
-FONT = pygame.font.Font("font/GideonRoman-Regular.ttf", 19)  # Updated font
+CHAT_GRID_FONT = pygame.font.Font("font/GideonRoman-Regular.ttf", 19)
+CHAT_FONT = pygame.font.Font("font/GideonRoman-Regular.ttf", 17)  # Updated font for chat
+GRID_FONT = pygame.font.Font("font/GideonRoman-Regular.ttf", 25)  # Updated font for grid
 TIMER_FONT = pygame.font.Font("font/GideonRoman-Regular.ttf", 19)  # Updated font
 
 # Colors
@@ -26,16 +29,65 @@ GOLD = (255, 215, 0)
 PLAYER_IMAGES = []
 
 # Load Medusa and Hedone backgrounds
-MEDUSA_BACKGROUND = pygame.image.load("char/medusa.png")
-MEDUSA_BACKGROUND = pygame.transform.smoothscale(MEDUSA_BACKGROUND, (int(SCREEN_WIDTH * 0.7), SCREEN_HEIGHT))
-HEDONE_BACKGROUND = pygame.image.load("char/hedone.png")
-HEDONE_BACKGROUND = pygame.transform.smoothscale(HEDONE_BACKGROUND, (int(SCREEN_WIDTH * 0.7), SCREEN_HEIGHT))
+MEDUSA_BACKGROUND = pygame.transform.smoothscale(pygame.image.load("char/medusa/medusa1.png"), (int(SCREEN_WIDTH * 0.7), SCREEN_HEIGHT))
+HEDONE_BACKGROUND = pygame.transform.smoothscale(pygame.image.load("char/hedone/hedone1.png"), (int(SCREEN_WIDTH * 0.7), SCREEN_HEIGHT))
 
-INTRO_IMAGES = {
-    2: pygame.transform.smoothscale(pygame.image.load("char/ep2.png"), (int(SCREEN_WIDTH * 0.7), SCREEN_HEIGHT)),
-    3: pygame.transform.smoothscale(pygame.image.load("char/aee.png"), (int(SCREEN_WIDTH * 0.7), SCREEN_HEIGHT)),
-    4: pygame.transform.smoothscale(pygame.image.load("char/zhsl.png"), (int(SCREEN_WIDTH * 0.7), SCREEN_HEIGHT))
-}
+MEDUSA_IMAGES = [
+    pygame.image.load(f"char/medusa/medusa{i}.png") for i in range(1, 11)
+]
+HEDONE_IMAGES = [
+    pygame.image.load(f"char/hedone/hedone{i}.png") for i in range(1, 11)
+]
+
+MEDUSA_IMAGES = [
+    pygame.transform.smoothscale(image, (CELL_SIZE, CELL_SIZE))
+    for image in MEDUSA_IMAGES
+]
+HEDONE_IMAGES = [
+    pygame.transform.smoothscale(image, (CELL_SIZE, CELL_SIZE))
+    for image in HEDONE_IMAGES
+]
+
+# Load single intro image
+INTRO_IMAGE = pygame.transform.smoothscale(pygame.image.load("char/io.png"), (int(SCREEN_WIDTH), SCREEN_HEIGHT))
+
+INTRO_VIDEO_PATH = "char/intro/intro.mp4"
+
+def play_intro_video():
+    cap = cv2.VideoCapture(INTRO_VIDEO_PATH)
+
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        frame_height, frame_width = frame.shape[:2]
+        aspect_ratio = 16 / 9
+        if frame_width / frame_height > aspect_ratio:
+            # Wider than 16:9, fit by height
+            new_height = SCREEN_HEIGHT
+            new_width = int(new_height * aspect_ratio)
+        else:
+            # Taller than 16:9, fit by width
+            new_width = SCREEN_WIDTH
+            new_height = int(new_width / aspect_ratio)
+
+        frame = cv2.resize(frame, (new_width, new_height))
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame_surface = pygame.surfarray.make_surface(frame.swapaxes(0, 1))
+
+        # Center the frame on the screen
+        x_offset = (SCREEN_WIDTH - new_width) // 2
+        y_offset = (SCREEN_HEIGHT - new_height) // 2
+        screen.fill(WHITE)  # Clear the screen
+        screen.blit(frame_surface, (x_offset, y_offset))
+        pygame.display.flip()
+
+        if cv2.waitKey(20) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
 
 def load_player_images(num_players):
     def load_high_quality_image(path):
@@ -63,7 +115,7 @@ def load_player_images(num_players):
 
 # Initialize screen
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Snakes and Ladders")
+pygame.display.set_caption("Hedone and Himeros")
 
 # Chat panel setup
 chat_panel = []
@@ -93,12 +145,13 @@ def draw_chat():
     pygame.draw.rect(screen, WHITE, (panel_x, chat_y_offset, panel_width, SCREEN_HEIGHT - chat_y_offset))
     pygame.draw.rect(screen, BLACK, (panel_x, chat_y_offset, panel_width, SCREEN_HEIGHT - chat_y_offset), 1)
 
+    padding = 15  # Padding between lines
     for i, line in enumerate(chat_panel):
-        text = FONT.render(line, True, BLACK)
-        screen.blit(text, (panel_x + 5, chat_y_offset + 10 + i * 15))
+        text = CHAT_FONT.render(line, True, BLACK)
+        screen.blit(text, (panel_x + 10, chat_y_offset + 10 + i * padding))
 
 # Create the board
-def draw_board(action_positions):
+def draw_board(action_positions, snake_tiles={}, ladder_tiles={}):
     for row in range(GRID_SIZE):
         for col in range(GRID_SIZE):
             if row % 2 == 0:  # Even rows go right to left
@@ -107,71 +160,90 @@ def draw_board(action_positions):
                 position = (GRID_SIZE * (GRID_SIZE - row - 1)) + col + 1
 
             rect = pygame.Rect(col * CELL_SIZE, row * CELL_SIZE + GRID_Y_OFFSET, CELL_SIZE, CELL_SIZE)
+
+            # Check if the tile should display a Medusa or Hedone image
+            if position in snake_tiles:
+                screen.blit(snake_tiles[position], rect.topleft)
+            elif position in ladder_tiles:
+                screen.blit(ladder_tiles[position], rect.topleft)
+
             overlay = pygame.Surface((CELL_SIZE, CELL_SIZE), pygame.SRCALPHA)
             overlay.fill((173, 216, 230, 8))  # Pastel blue with 30% opacity
             screen.blit(overlay, rect.topleft)
             pygame.draw.rect(screen, BLACK, rect, 1)
 
-            if position in action_positions:
-                text = FONT.render(action_positions[position], True, BLACK)
-            else:
-                text = FONT.render(str(position), True, BLACK)
-
+            text = GRID_FONT.render(str(position), True, BLACK)
             screen.blit(text, (rect.x + 5, rect.y + 5))
 
 # Generate snakes and ladders
 def generate_snakes_and_ladders():
     snakes = {}
     ladders = {}
+    snake_medusa_mapping = {}
+    ladder_hedone_mapping = {}
 
-    while len(snakes) < 10:
-        start = random.randint(11, 90)
-        end = start - random.randint(1, 10)
-        if end > 0 and start not in snakes and start not in ladders:
-            snakes[start] = end
+    for level_index, level_start in enumerate(range(1, 101, 10)):
+        level_end = level_start + 9
 
-    while len(ladders) < 10:
-        start = random.randint(1, 89)
-        end = start + random.randint(1, 10)
-        if end <= 100 and start not in ladders and start not in snakes:
-            ladders[start] = end
+        # Generate one snake per level
+        while True:
+            start = random.randint(level_start + 1, level_end)
+            end = random.randint(level_start, start - 1)
+            if start - end <= 5 and start not in snakes and start not in ladders and end > level_start:
+                snakes[start] = end
+                break
 
-    return snakes, ladders
+        # Assign the corresponding Medusa image to the snake
+        snake_medusa_mapping[start] = MEDUSA_IMAGES[level_index % 10]
 
-snakes, ladders = generate_snakes_and_ladders()
+
+        # Generate one ladder per level
+        while True:
+            start = random.randint(level_start, level_end - 1)
+            end = random.randint(start + 1, level_end)
+            if end - start <= 5 and start not in ladders and start not in snakes:
+                ladders[start] = end
+                break
+
+        # Assign the corresponding Hedone image to the ladder
+        ladder_hedone_mapping[start] = HEDONE_IMAGES[level_index % 10]
+
+    return snakes, ladders, snake_medusa_mapping, ladder_hedone_mapping
+
+snakes, ladders, snake_medusa_mapping, ladder_hedone_mapping = generate_snakes_and_ladders()
+
 
 # Draw snakes and ladders using custom styles
 def draw_snakes_and_ladders():
-    pass
-    # for start, end in snakes.items():
-    #     start_pos = get_coordinates(start)
-    #     end_pos = get_coordinates(end)
-    #
-    #     # Create curvy wavy effect for snakes
-    #     num_segments = 10  # Number of segments for the curve
-    #     x_diff = (end_pos[0] - start_pos[0]) / num_segments
-    #     y_diff = (end_pos[1] - start_pos[1]) / num_segments
-    #     points = []
-    #     for i in range(num_segments + 1):
-    #         x = start_pos[0] + i * x_diff + CELL_SIZE // 6 * (-1)**i
-    #         y = start_pos[1] + i * y_diff
-    #         points.append((x + CELL_SIZE // 2, y + CELL_SIZE // 2))  # Center-align the wave
-    #
-    #     # Snakes are now invisible
-    #     pygame.draw.lines(screen, TRANSPARENT, False, points, 8)
-    #
-    # for start, end in ladders.items():
-    #     start_pos = get_coordinates(start)
-    #     end_pos = get_coordinates(end)
-    #     # Ladders are now invisible
-    #     pygame.draw.line(screen, TRANSPARENT, (start_pos[0] + CELL_SIZE // 2, start_pos[1] + CELL_SIZE // 2),
-    #                      (end_pos[0] + CELL_SIZE // 2, end_pos[1] + CELL_SIZE // 2), 5)  # Draw the wavy snake
-    #
-    # for start, end in ladders.items():
-    #     start_pos = get_coordinates(start)
-    #     end_pos = get_coordinates(end)
-    #     pygame.draw.line(screen, GOLD, (start_pos[0] + CELL_SIZE // 2, start_pos[1] + CELL_SIZE // 2),
-    #                      (end_pos[0] + CELL_SIZE // 2, end_pos[1] + CELL_SIZE // 2), 5)  # Shiny golden ladder
+    for start, end in snakes.items():
+        start_pos = get_coordinates(start)
+        end_pos = get_coordinates(end)
+
+        # Create curvy wavy effect for snakes
+        num_segments = 10  # Number of segments for the curve
+        x_diff = (end_pos[0] - start_pos[0]) / num_segments
+        y_diff = (end_pos[1] - start_pos[1]) / num_segments
+        points = []
+        for i in range(num_segments + 1):
+            x = start_pos[0] + i * x_diff + CELL_SIZE // 6 * (-1)**i
+            y = start_pos[1] + i * y_diff
+            points.append((x + CELL_SIZE // 2, y + CELL_SIZE // 2))  # Center-align the wave
+
+        # Snakes are now invisible
+        pygame.draw.lines(screen, TRANSPARENT, False, points, 8)
+
+    for start, end in ladders.items():
+        start_pos = get_coordinates(start)
+        end_pos = get_coordinates(end)
+        # Ladders are now invisible
+        pygame.draw.line(screen, TRANSPARENT, (start_pos[0] + CELL_SIZE // 2, start_pos[1] + CELL_SIZE // 2),
+                         (end_pos[0] + CELL_SIZE // 2, end_pos[1] + CELL_SIZE // 2), 5)  # Draw the wavy snake
+
+    for start, end in ladders.items():
+        start_pos = get_coordinates(start)
+        end_pos = get_coordinates(end)
+        pygame.draw.line(screen, GOLD, (start_pos[0] + CELL_SIZE // 2, start_pos[1] + CELL_SIZE // 2),
+                         (end_pos[0] + CELL_SIZE // 2, end_pos[1] + CELL_SIZE // 2), 5)  # Shiny golden ladder
 
 # Convert board index to screen coordinates
 def get_coordinates(position):
@@ -195,7 +267,7 @@ def animate_movement(start, end, player_index, background_override=None):
         else:
             screen.fill(WHITE)  # Clear screen to white
 
-        draw_board(action_positions)
+        draw_board(action_positions, snake_tiles, ladder_tiles)
         draw_snakes_and_ladders()
         draw_players()
         draw_chat()
@@ -271,9 +343,11 @@ def initialize_players():
                 continue
 
             # Show start image for 5 seconds
-            screen.blit(INTRO_IMAGES[num_players], (0, 0))
-            pygame.display.flip()
-            time.sleep(15)
+            # screen.blit(INTRO_IMAGE, (0, 0))
+            # pygame.display.flip()
+            # time.sleep(9)
+
+            play_intro_video()
 
             break
         except ValueError:
@@ -303,12 +377,12 @@ def get_dice_value():
                     input_value += event.unicode
 
         screen.fill(WHITE)  # Clear screen to white
-        draw_board(action_positions)
+        draw_board(action_positions, snake_tiles, ladder_tiles)
         draw_snakes_and_ladders()
         draw_players()
         draw_chat()
         draw_timer(countdown_end)
-        input_text = FONT.render(f"Enter Dice Value (1-6): {input_value}", True, BLACK)
+        input_text = CHAT_FONT.render(f"Enter Dice Value (1-6): {input_value}", True, BLACK)
         screen.blit(input_text, (int(SCREEN_WIDTH * 0.7) + 5, SCREEN_HEIGHT - 40))
         pygame.display.flip()
 
@@ -322,10 +396,12 @@ def draw_players():
 running = True
 winner = None
 action_positions = {}
+snake_tiles = {}
+ladder_tiles = {}
 countdown_end = time.time()
 while running:
     screen.fill(WHITE)  # Clear screen to white
-    draw_board(action_positions)
+    draw_board(action_positions, snake_tiles, ladder_tiles)
     draw_snakes_and_ladders()
     draw_players()
     draw_chat()
@@ -338,7 +414,7 @@ while running:
     if not winner:
         dice_value = get_dice_value()
         current_player = players[current_player_idx % len(players)]
-        update_chat(f"{current_player} rolled a {dice_value}!")
+        # update_chat(f"{current_player} rolled a {dice_value}!")
 
         # Logic for rolling 6s
         six_count = 0
@@ -347,10 +423,11 @@ while running:
         while True:
             if dice_value == 6:
                 six_count += 1
-                update_chat(f"{current_player} rolled a 6! Another chance!")
                 if six_count == 3:
                     update_chat(f"{current_player} rolled three 6s! Turn skipped.")
                     break
+                else:
+                    update_chat(f"{current_player} rolled a 6! Another chance!")
                 dice_value = get_dice_value()
             else:
                 turn_total += 6 * six_count + dice_value
@@ -360,15 +437,17 @@ while running:
                     update_chat("Roll exceeds 100! Stay in place.")
                 else:
                     if new_pos in snakes:
-                        update_chat(f"{current_player} encountered a snake! Sliding down.")
                         animate_movement(player_positions[current_player_idx], new_pos, current_player_idx)
                         animate_movement(new_pos, snakes[new_pos], current_player_idx, MEDUSA_BACKGROUND)
+                        update_chat(f"{current_player} encountered Medusa's wrath! You now need to get Spanked!")
+                        snake_tiles[new_pos] = snake_medusa_mapping[new_pos]
                         player_positions[current_player_idx] = snakes[new_pos]
                         countdown_end = time.time() + player_positions[current_player_idx] * 2
                     elif new_pos in ladders:
-                        update_chat(f"{current_player} climbed a ladder! Moving up.")
                         animate_movement(player_positions[current_player_idx], new_pos, current_player_idx)
                         animate_movement(new_pos, ladders[new_pos], current_player_idx, HEDONE_BACKGROUND)
+                        update_chat(f"{current_player} is embraced by Hedone’s delight and Himeros’ desire! You may now experience a delightful action of your choosing!")
+                        ladder_tiles[new_pos] = ladder_hedone_mapping[new_pos]
                         player_positions[current_player_idx] = ladders[new_pos]
                         countdown_end = time.time() + player_positions[current_player_idx] * 2
                     else:
@@ -377,7 +456,6 @@ while running:
                         countdown_end = time.time() + player_positions[current_player_idx] * 2
 
                     action = get_action(player_positions[current_player_idx])
-                    action_positions[player_positions[current_player_idx]] = action
                     update_chat(f"{current_player} performs: {action}")
 
                     if player_positions[current_player_idx] == 100:
