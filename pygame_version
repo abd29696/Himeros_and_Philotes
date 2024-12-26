@@ -48,6 +48,19 @@ HEDONE_IMAGES = [
     for image in HEDONE_IMAGES
 ]
 
+MEDUSA_BACKGROUNDS = [
+    pygame.image.load(f"char/medusa/medusa{i}.png") for i in range(1, 11)
+]
+HEDONE_BACKGROUNDS = [
+    pygame.image.load(f"char/hedone/hedone{i}.png") for i in range(1, 11)
+]
+MEDUSA_BACKGROUNDS = [
+    pygame.transform.smoothscale(img, (int(SCREEN_WIDTH * 0.7), SCREEN_HEIGHT)) for img in MEDUSA_BACKGROUNDS
+]
+HEDONE_BACKGROUNDS = [
+    pygame.transform.smoothscale(img, (int(SCREEN_WIDTH * 0.7), SCREEN_HEIGHT)) for img in HEDONE_BACKGROUNDS
+]
+
 # Load single intro image
 INTRO_IMAGE = pygame.transform.smoothscale(pygame.image.load("char/io.png"), (int(SCREEN_WIDTH), SCREEN_HEIGHT))
 
@@ -136,6 +149,7 @@ def draw_chat():
     panel_x = int(SCREEN_WIDTH * 0.7)
     panel_width = SCREEN_WIDTH - panel_x
     chat_y_offset = int(SCREEN_HEIGHT * 0.1)
+    max_text_width = panel_width - 20  # Adjust for padding
 
     # Draw the upper section for the timer
     pygame.draw.rect(screen, WHITE, (panel_x, 0, panel_width, chat_y_offset))
@@ -145,10 +159,32 @@ def draw_chat():
     pygame.draw.rect(screen, WHITE, (panel_x, chat_y_offset, panel_width, SCREEN_HEIGHT - chat_y_offset))
     pygame.draw.rect(screen, BLACK, (panel_x, chat_y_offset, panel_width, SCREEN_HEIGHT - chat_y_offset), 1)
 
-    padding = 15  # Padding between lines
-    for i, line in enumerate(chat_panel):
-        text = CHAT_FONT.render(line, True, BLACK)
-        screen.blit(text, (panel_x + 10, chat_y_offset + 10 + i * padding))
+    y_position = chat_y_offset + 20  # Start slightly lower for better spacing
+    line_padding = 10  # Padding between lines within the same message
+    message_padding = 15  # Padding between different messages
+
+    for message in chat_panel:
+        words = message.split(" ")
+        line = ""
+        for word in words:
+            test_line = line + word + " "
+            rendered_text = CHAT_FONT.render(test_line.strip(), True, BLACK)
+            if rendered_text.get_width() > max_text_width:
+                # Render the current line and start a new one
+                rendered_text = CHAT_FONT.render(line.strip(), True, BLACK)
+                screen.blit(rendered_text, (panel_x + 10, y_position))
+                y_position += CHAT_FONT.get_height() + line_padding
+                line = word + " "
+            else:
+                line = test_line
+        # Render the remaining line
+        if line:
+            rendered_text = CHAT_FONT.render(line.strip(), True, BLACK)
+            screen.blit(rendered_text, (panel_x + 10, y_position))
+            y_position += CHAT_FONT.get_height() + line_padding
+        y_position += message_padding - line_padding  # Extra padding between messages
+
+
 
 # Create the board
 def draw_board(action_positions, snake_tiles={}, ladder_tiles={}):
@@ -181,6 +217,8 @@ def generate_snakes_and_ladders():
     ladders = {}
     snake_medusa_mapping = {}
     ladder_hedone_mapping = {}
+    snake_background_mapping = {}
+    ladder_background_mapping = {}
 
     for level_index, level_start in enumerate(range(1, 101, 10)):
         level_end = level_start + 9
@@ -195,6 +233,7 @@ def generate_snakes_and_ladders():
 
         # Assign the corresponding Medusa image to the snake
         snake_medusa_mapping[start] = MEDUSA_IMAGES[level_index % 10]
+        snake_background_mapping[start] = MEDUSA_BACKGROUNDS[level_index % 10]
 
 
         # Generate one ladder per level
@@ -207,11 +246,11 @@ def generate_snakes_and_ladders():
 
         # Assign the corresponding Hedone image to the ladder
         ladder_hedone_mapping[start] = HEDONE_IMAGES[level_index % 10]
+        ladder_background_mapping[start] = HEDONE_BACKGROUNDS[level_index % 10]
 
-    return snakes, ladders, snake_medusa_mapping, ladder_hedone_mapping
+    return snakes, ladders, snake_medusa_mapping, ladder_hedone_mapping, snake_background_mapping, ladder_background_mapping
 
-snakes, ladders, snake_medusa_mapping, ladder_hedone_mapping = generate_snakes_and_ladders()
-
+snakes, ladders, snake_medusa_mapping, ladder_hedone_mapping, snake_bg_mapping, ladder_bg_mapping = generate_snakes_and_ladders()
 
 # Draw snakes and ladders using custom styles
 def draw_snakes_and_ladders():
@@ -438,14 +477,14 @@ while running:
                 else:
                     if new_pos in snakes:
                         animate_movement(player_positions[current_player_idx], new_pos, current_player_idx)
-                        animate_movement(new_pos, snakes[new_pos], current_player_idx, MEDUSA_BACKGROUND)
+                        animate_movement(new_pos, snakes[new_pos], current_player_idx, snake_bg_mapping[new_pos])
                         update_chat(f"{current_player} encountered Medusa's wrath! You now need to get Spanked!")
                         snake_tiles[new_pos] = snake_medusa_mapping[new_pos]
                         player_positions[current_player_idx] = snakes[new_pos]
                         countdown_end = time.time() + player_positions[current_player_idx] * 2
                     elif new_pos in ladders:
                         animate_movement(player_positions[current_player_idx], new_pos, current_player_idx)
-                        animate_movement(new_pos, ladders[new_pos], current_player_idx, HEDONE_BACKGROUND)
+                        animate_movement(new_pos, ladders[new_pos], current_player_idx, ladder_bg_mapping[new_pos])
                         update_chat(f"{current_player} is embraced by Hedone’s delight and Himeros’ desire! You may now experience a delightful action of your choosing!")
                         ladder_tiles[new_pos] = ladder_hedone_mapping[new_pos]
                         player_positions[current_player_idx] = ladders[new_pos]
