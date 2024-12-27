@@ -2,29 +2,57 @@ import pygame
 import random
 import time
 import cv2
+import pygame.freetype
 
 # Initialize Pygame
 pygame.init()
 
-# Screen dimensions
-SCREEN_WIDTH, SCREEN_HEIGHT = 1200, 840
+# Screen dimensions (16:9 aspect ratio)
+SCREEN_WIDTH, SCREEN_HEIGHT = 1475, 830
 GRID_SIZE = 10
-CELL_SIZE = int((SCREEN_WIDTH * 0.7) // GRID_SIZE)  # Adjusted cell size
-GRID_Y_OFFSET = 0  # Removed top margin
-CHAT_GRID_FONT = pygame.font.Font("font/GideonRoman-Regular.ttf", 19)
-CHAT_FONT = pygame.font.Font("font/GideonRoman-Regular.ttf", 17)  # Updated font for chat
-GRID_FONT = pygame.font.Font("font/GideonRoman-Regular.ttf", 25)  # Updated font for grid
-TIMER_FONT = pygame.font.Font("font/GideonRoman-Regular.ttf", 19)  # Updated font
+# Adjust grid and panel dimensions for equal height and spacing
+GRID_HEIGHT = SCREEN_HEIGHT - 20  # Leave equal spacing on top and bottom
+GRID_WIDTH = int(GRID_HEIGHT * (7 / 9))  # Maintain 7:9 width-to-height ratio for grid
+PANEL_WIDTH = SCREEN_WIDTH - GRID_WIDTH - 60  # Remaining space for the right panel
+PANEL_HEIGHT = GRID_HEIGHT
+# CELL_SIZE = GRID_HEIGHT // GRID_SIZE  # Cell size based on grid height
+CELL_SPACING = 5  # Space between cells
+CELL_SIZE = (GRID_HEIGHT - (GRID_SIZE - 1) * CELL_SPACING) // GRID_SIZE
+# Dynamically calculate vertical offset to center the grid
+total_grid_height = GRID_SIZE * (CELL_SIZE + CELL_SPACING) - CELL_SPACING
+GRID_Y_OFFSET = (SCREEN_HEIGHT - total_grid_height) // 2
+GRID_X_OFFSET = 20  # Space on the left
+
+# Font settings
+CHAT_GRID_FONT = pygame.font.Font("font/GideonRoman-Regular.ttf", 17)
+CHAT_FONT = pygame.font.Font("font/GideonRoman-Regular.ttf", 17)
+GRID_FONT = pygame.font.Font("font/GideonRoman-Regular.ttf", 21)
+TIMER_FONT = pygame.font.Font("font/GideonRoman-Regular.ttf", 17)
+
 
 # Colors
 TRANSPARENT = (0, 0, 0, 3)
-WHITE = (255, 255, 255)
+WHITE = (255, 255, 255, 3)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
 GOLD = (255, 215, 0)
+
+GRID_COLOR = (255, 255, 255, 3)
+GRID_FONT_COLOR = (33, 33, 33, 1)
+CHAT_COLOR = (255, 255, 255, 3)
+CHAT_FONT_COLOR = (33, 33, 33, 1)
+
+def apply_rounded_mask(image, radius=CELL_SIZE // 5):
+    mask = pygame.Surface((CELL_SIZE, CELL_SIZE), pygame.SRCALPHA)
+    pygame.draw.rect(mask, (255, 255, 255, 255), (0, 0, CELL_SIZE, CELL_SIZE), border_radius=10)
+    rounded_image = pygame.Surface((CELL_SIZE, CELL_SIZE), pygame.SRCALPHA)
+    rounded_image.blit(image, (0, 0))
+    rounded_image.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
+    return rounded_image
+
 
 PLAYER_IMAGES = []
 
@@ -61,10 +89,22 @@ HEDONE_BACKGROUNDS = [
     pygame.transform.smoothscale(img, (int(SCREEN_WIDTH * 0.7), SCREEN_HEIGHT)) for img in HEDONE_BACKGROUNDS
 ]
 
+MEDUSA_IMAGES = [
+    apply_rounded_mask(pygame.transform.smoothscale(image, (CELL_SIZE, CELL_SIZE)))
+    for image in MEDUSA_IMAGES
+]
+HEDONE_IMAGES = [
+    apply_rounded_mask(pygame.transform.smoothscale(image, (CELL_SIZE, CELL_SIZE)))
+    for image in HEDONE_IMAGES
+]
+
+
+
 # Load single intro image
 INTRO_IMAGE = pygame.transform.smoothscale(pygame.image.load("char/io.png"), (int(SCREEN_WIDTH), SCREEN_HEIGHT))
 
 INTRO_VIDEO_PATH = "char/intro/intro.mp4"
+
 
 def play_intro_video():
     cap = cv2.VideoCapture(INTRO_VIDEO_PATH)
@@ -92,7 +132,7 @@ def play_intro_video():
         # Center the frame on the screen
         x_offset = (SCREEN_WIDTH - new_width) // 2
         y_offset = (SCREEN_HEIGHT - new_height) // 2
-        screen.fill(WHITE)  # Clear the screen
+        screen.fill(GRID_COLOR)  # Clear the screen
         screen.blit(frame_surface, (x_offset, y_offset))
         pygame.display.flip()
 
@@ -124,7 +164,10 @@ def load_player_images(num_players):
             load_high_quality_image("char/semele.png"),
             load_high_quality_image("char/io.png")
         ]
+
     return []
+
+
 
 # Initialize screen
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -137,13 +180,24 @@ def update_chat(message):
     if len(chat_panel) > 15:
         chat_panel.pop(0)
 
+
 def draw_timer(countdown_time):
     remaining_time = max(0, int(countdown_time - time.time()))
     minutes = remaining_time // 60
     seconds = remaining_time % 60
-    timer_text = TIMER_FONT.render(f"Time Left: {minutes:02}:{seconds:02}", True, BLACK)
+    timer_text = TIMER_FONT.render(f"Time Left: {minutes:02}:{seconds:02}", True, CHAT_FONT_COLOR)
+
     panel_x = int(SCREEN_WIDTH * 0.7)
-    screen.blit(timer_text, (panel_x + 10, 10))
+    panel_width = SCREEN_WIDTH - panel_x
+
+    # Draw timer background with the same dimensions as the chat panel
+    timer_rect = pygame.Rect(panel_x + 10, 10, panel_width - 20, 50)
+    pygame.draw.rect(screen, CHAT_COLOR, timer_rect, border_radius=10)  # Rounded corners
+    pygame.draw.rect(screen, CHAT_FONT_COLOR, timer_rect, 1, border_radius=10)  # Outline with rounded corners
+
+
+    # Draw timer text
+    screen.blit(timer_text, (timer_rect.x + 10 , timer_rect.y + 10))
 
 def draw_chat():
     panel_x = int(SCREEN_WIDTH * 0.7)
@@ -151,39 +205,32 @@ def draw_chat():
     chat_y_offset = int(SCREEN_HEIGHT * 0.1)
     max_text_width = panel_width - 20  # Adjust for padding
 
-    # Draw the upper section for the timer
-    pygame.draw.rect(screen, WHITE, (panel_x, 0, panel_width, chat_y_offset))
-    pygame.draw.rect(screen, BLACK, (panel_x, 0, panel_width, chat_y_offset), 1)
+    # Draw the chat panel background with rounded corners
+    chat_rect = pygame.Rect(panel_x + 10, chat_y_offset, panel_width - 20, SCREEN_HEIGHT - chat_y_offset - 70)  # Adjust height for dice panel
+    pygame.draw.rect(screen, CHAT_COLOR, chat_rect, border_radius=10)  # Rounded corners
+    pygame.draw.rect(screen, CHAT_FONT_COLOR, chat_rect, 1, border_radius=10)  # Border with rounded corners
 
-    # Draw the lower section for the chat
-    pygame.draw.rect(screen, WHITE, (panel_x, chat_y_offset, panel_width, SCREEN_HEIGHT - chat_y_offset))
-    pygame.draw.rect(screen, BLACK, (panel_x, chat_y_offset, panel_width, SCREEN_HEIGHT - chat_y_offset), 1)
-
-    y_position = chat_y_offset + 20  # Start slightly lower for better spacing
-    line_padding = 10  # Padding between lines within the same message
-    message_padding = 15  # Padding between different messages
-
+    # Draw chat messages with text wrapping
+    y_position = chat_rect.y + 5  # Start with some padding
     for message in chat_panel:
         words = message.split(" ")
         line = ""
         for word in words:
             test_line = line + word + " "
-            rendered_text = CHAT_FONT.render(test_line.strip(), True, BLACK)
+            rendered_text = CHAT_FONT.render(test_line.strip(), True, CHAT_FONT_COLOR)
             if rendered_text.get_width() > max_text_width:
                 # Render the current line and start a new one
-                rendered_text = CHAT_FONT.render(line.strip(), True, BLACK)
-                screen.blit(rendered_text, (panel_x + 10, y_position))
-                y_position += CHAT_FONT.get_height() + line_padding
+                rendered_text = CHAT_FONT.render(line.strip(), True, CHAT_FONT_COLOR)
+                screen.blit(rendered_text, (chat_rect.x + 10, y_position))
+                y_position += CHAT_FONT.get_height() + 5
                 line = word + " "
             else:
                 line = test_line
-        # Render the remaining line
+        # Render the last line
         if line:
-            rendered_text = CHAT_FONT.render(line.strip(), True, BLACK)
-            screen.blit(rendered_text, (panel_x + 10, y_position))
-            y_position += CHAT_FONT.get_height() + line_padding
-        y_position += message_padding - line_padding  # Extra padding between messages
-
+            rendered_text = CHAT_FONT.render(line.strip(), True, CHAT_FONT_COLOR)
+            screen.blit(rendered_text, (chat_rect.x + 10, y_position))
+            y_position += CHAT_FONT.get_height() + 5
 
 
 # Create the board
@@ -195,7 +242,9 @@ def draw_board(action_positions, snake_tiles={}, ladder_tiles={}):
             else:  # Odd rows go left to right
                 position = (GRID_SIZE * (GRID_SIZE - row - 1)) + col + 1
 
-            rect = pygame.Rect(col * CELL_SIZE, row * CELL_SIZE + GRID_Y_OFFSET, CELL_SIZE, CELL_SIZE)
+            rect_x = GRID_X_OFFSET + col * (CELL_SIZE + CELL_SPACING)
+            rect_y = GRID_Y_OFFSET + row * (CELL_SIZE + CELL_SPACING)
+            rect = pygame.Rect(rect_x, rect_y, CELL_SIZE, CELL_SIZE)
 
             # Check if the tile should display a Medusa or Hedone image
             if position in snake_tiles:
@@ -205,11 +254,15 @@ def draw_board(action_positions, snake_tiles={}, ladder_tiles={}):
 
             overlay = pygame.Surface((CELL_SIZE, CELL_SIZE), pygame.SRCALPHA)
             overlay.fill((173, 216, 230, 8))  # Pastel blue with 30% opacity
+            pygame.draw.rect(overlay, (0, 0, 0, 0), rect, border_radius=10)  # Rounded cell edges
             screen.blit(overlay, rect.topleft)
-            pygame.draw.rect(screen, BLACK, rect, 1)
+            pygame.draw.rect(screen, GRID_FONT_COLOR, rect, 1, border_radius=10)
 
-            text = GRID_FONT.render(str(position), True, BLACK)
+            text = GRID_FONT.render(str(position), True, GRID_FONT_COLOR)
             screen.blit(text, (rect.x + 5, rect.y + 5))
+
+
+
 
 # Generate snakes and ladders
 def generate_snakes_and_ladders():
@@ -293,9 +346,11 @@ def get_coordinates(position):
     else:  # Odd rows go left to right
         col = GRID_SIZE - 1 - (position % GRID_SIZE)
 
-    x = col * CELL_SIZE
-    y = (GRID_SIZE - 1 - row) * CELL_SIZE
+    x = GRID_X_OFFSET + col * (CELL_SIZE + CELL_SPACING)
+    y = GRID_Y_OFFSET + (GRID_SIZE - 1 - row) * (CELL_SIZE + CELL_SPACING)
     return x, y
+
+
 
 # Smooth movement animation
 def animate_movement(start, end, player_index, background_override=None):
@@ -304,7 +359,7 @@ def animate_movement(start, end, player_index, background_override=None):
         if background_override:
             screen.blit(background_override, (0, 0))  # Draw override background
         else:
-            screen.fill(WHITE)  # Clear screen to white
+            screen.fill(GRID_COLOR)  # Clear screen to white
 
         draw_board(action_positions, snake_tiles, ladder_tiles)
         draw_snakes_and_ladders()
@@ -313,9 +368,14 @@ def animate_movement(start, end, player_index, background_override=None):
         draw_timer(countdown_end)
 
         x, y = get_coordinates(position)
-        screen.blit(PLAYER_IMAGES[player_index], (x, y))  # Align image with cell
+        x_centered = x + (CELL_SIZE - PLAYER_IMAGES[player_index].get_width()) // 2
+        y_centered = y + (CELL_SIZE - PLAYER_IMAGES[player_index].get_height()) // 2
+
+        screen.blit(PLAYER_IMAGES[player_index], (x_centered, y_centered))  # Align image with rounded cell padding
         pygame.display.flip()
         time.sleep(0.2)
+
+
 
 # Load actions
 def load_actions():
@@ -368,15 +428,21 @@ def initialize_players():
             if num_players == 2:
                 player_names = ["Eros", "Psyche"]
                 update_chat("Welcome Eros and Psyche!")
-                PLAYER_IMAGES = load_player_images(2)
+                PLAYER_IMAGES = [
+                    apply_rounded_mask(image) for image in load_player_images(2)
+                ]
             elif num_players == 3:
                 player_names = ["Ares", "Aphrodite", "Eos"]
                 update_chat("Welcome Ares, Aphrodite, and Eos!")
-                PLAYER_IMAGES = load_player_images(3)
+                PLAYER_IMAGES = [
+                    apply_rounded_mask(image) for image in load_player_images(2)
+                ]
             elif num_players == 4:
                 player_names = ["Zeus", "Hera", "Semele", "Io"]
                 update_chat("Welcome Zeus, Hera, Semele, and Io!")
-                PLAYER_IMAGES = load_player_images(4)
+                PLAYER_IMAGES = [
+                    apply_rounded_mask(image) for image in load_player_images(2)
+                ]
             else:
                 print("Invalid number of players. Please choose between 2 and 4.")
                 continue
@@ -398,6 +464,16 @@ def initialize_players():
 players, player_positions = initialize_players()
 current_player_idx = 0
 
+def draw_dice_panel(input_value):
+    panel_x = int(SCREEN_WIDTH * 0.7)
+    panel_width = SCREEN_WIDTH - panel_x
+    dice_panel_rect = pygame.Rect(panel_x + 10, SCREEN_HEIGHT - 60, panel_width - 20, 50)  # Positioned at the bottom
+    pygame.draw.rect(screen, CHAT_COLOR, dice_panel_rect, border_radius=10)  # Rounded corners
+    pygame.draw.rect(screen, CHAT_FONT_COLOR, dice_panel_rect, 1, border_radius=10)  # Border with rounded corners
+
+    input_text = CHAT_FONT.render(f"Enter Dice Value (1-6): {input_value}", True, CHAT_FONT_COLOR)
+    screen.blit(input_text, (dice_panel_rect.x + 10, dice_panel_rect.y + 10))
+
 def get_dice_value():
     global countdown_end
     input_value = ""
@@ -415,14 +491,15 @@ def get_dice_value():
                 else:
                     input_value += event.unicode
 
-        screen.fill(WHITE)  # Clear screen to white
+        screen.fill(GRID_COLOR)  # Clear screen to white
         draw_board(action_positions, snake_tiles, ladder_tiles)
         draw_snakes_and_ladders()
         draw_players()
         draw_chat()
         draw_timer(countdown_end)
-        input_text = CHAT_FONT.render(f"Enter Dice Value (1-6): {input_value}", True, BLACK)
-        screen.blit(input_text, (int(SCREEN_WIDTH * 0.7) + 5, SCREEN_HEIGHT - 40))
+        # input_text = CHAT_FONT.render(f"Enter Dice Value (1-6): {input_value}", True, CHAT_FONT_COLOR)
+        # screen.blit(input_text, (int(SCREEN_WIDTH * 0.7) + 5, SCREEN_HEIGHT - 40))
+        draw_dice_panel(input_value)  # Draw the separate dice input panel
         pygame.display.flip()
 
 # Draw players
@@ -439,7 +516,7 @@ snake_tiles = {}
 ladder_tiles = {}
 countdown_end = time.time()
 while running:
-    screen.fill(WHITE)  # Clear screen to white
+    screen.fill(GRID_COLOR)  # Clear screen to white
     draw_board(action_positions, snake_tiles, ladder_tiles)
     draw_snakes_and_ladders()
     draw_players()
