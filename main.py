@@ -28,8 +28,8 @@ PANEL_WIDTH = SCREEN_WIDTH - GRID_WIDTH - GRID_X_OFFSET * 3  # Adjust for equal 
 # Font settings
 CHAT_GRID_FONT = pygame.font.Font("font/GideonRoman-Regular.ttf", 17)
 CHAT_FONT = pygame.font.Font("font/GideonRoman-Regular.ttf", 17)
-GRID_FONT = pygame.font.Font("font/GideonRoman-Regular.ttf", 21)
-TIMER_FONT = pygame.font.Font("font/GideonRoman-Regular.ttf", 17)
+GRID_FONT = pygame.font.Font("font/GentiumPlus-Bold.ttf", 21)
+TIMER_FONT = pygame.font.Font("font/GentiumPlus-Bold.ttf", 21)
 
 
 # Colors
@@ -75,7 +75,6 @@ def apply_rounded_mask(image, radius=CELL_SIZE // 5):
 
 PLAYER_IMAGES = []
 
-# Load Medusa and Hedone backgrounds
 MEDUSA_IMAGE = "char/medusa.png"
 HEDONE_IMAGE = "char/hedone.png"
 
@@ -102,10 +101,10 @@ HEDONE_BACKGROUNDS = [
     pygame.image.load(f"char/hedone/hedone{i}.png") for i in range(1, 11)
 ]
 MEDUSA_BACKGROUNDS = [
-    pygame.transform.smoothscale(img, (int(SCREEN_WIDTH * 0.7), SCREEN_HEIGHT)) for img in MEDUSA_BACKGROUNDS
+    pygame.transform.smoothscale(img, (int(GRID_WIDTH), GRID_HEIGHT)) for img in MEDUSA_BACKGROUNDS
 ]
 HEDONE_BACKGROUNDS = [
-    pygame.transform.smoothscale(img, (int(SCREEN_WIDTH * 0.7), SCREEN_HEIGHT)) for img in HEDONE_BACKGROUNDS
+    pygame.transform.smoothscale(img, (int(GRID_WIDTH), GRID_HEIGHT)) for img in HEDONE_BACKGROUNDS
 ]
 
 MEDUSA_IMAGES = [
@@ -190,7 +189,7 @@ def load_player_images(num_players):
 
 # Initialize screen
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Hedone and Himeros")
+pygame.display.set_caption("Himeros and Philotes")
 
 # Chat panel setup
 chat_panel = []
@@ -252,30 +251,30 @@ def draw_right_panel(countdown_time, input_value, chat_scroll_offset):
     remaining_time = max(0, int(countdown_time - time.time()))
     minutes = remaining_time // 60
     seconds = remaining_time % 60
-    timer_text = TIMER_FONT.render(f"Time Left: {minutes:02}:{seconds:02}", True, CHAT_FONT_COLOR)
-    timer_rect = pygame.Rect(panel_x + 10, GRID_Y_OFFSET, panel_width - 20, 50)
+    timer_text = TIMER_FONT.render(f"{minutes:02}:{seconds:02}", True, CHAT_FONT_COLOR)
+    timer_rect = pygame.Rect(panel_x + 10, GRID_Y_OFFSET, panel_width - 20, CELL_SIZE)
 
     # Transparent background for the timer
     timer_surface = pygame.Surface((timer_rect.width, timer_rect.height), pygame.SRCALPHA)
     timer_surface.fill(CHAT_COLOR)  # CHAT_COLOR = (97, 4, 161, 29)
     screen.blit(timer_surface, timer_rect.topleft)
 
-    pygame.draw.rect(screen, VIOLET, timer_rect, 1, border_radius=10)  # Outline
+    pygame.draw.rect(screen, VIOLET, timer_rect, 2, border_radius=10)  # Outline
     screen.blit(timer_text, (timer_rect.x + 10, timer_rect.y + 10))
 
     # Chat surface for scrolling
-    chat_y_offset = GRID_Y_OFFSET + 70
+    chat_y_offset = GRID_Y_OFFSET + 81
     chat_rect_outline = pygame.Rect(
         panel_x + 10,
         chat_y_offset,
         panel_width - 20,
-        SCREEN_HEIGHT - chat_y_offset - 75
+        SCREEN_HEIGHT - chat_y_offset - 15
     )
-    pygame.draw.rect(screen, VIOLET, chat_rect_outline, 1, border_radius=10)
+    pygame.draw.rect(screen, VIOLET, chat_rect_outline, 2, border_radius=10)
 
     chat_rect = pygame.Rect(
         chat_rect_outline.x + 5,
-        chat_rect_outline.y + 5,
+        chat_rect_outline.y + 15,
         chat_rect_outline.width - 10,
         chat_rect_outline.height - 10
     )
@@ -321,14 +320,14 @@ def draw_right_panel(countdown_time, input_value, chat_scroll_offset):
     screen.blit(chat_surface, chat_rect.topleft)
 
     # Draw dice panel
-    dice_panel_rect = pygame.Rect(panel_x + 10, SCREEN_HEIGHT - 63, panel_width - 20, 50)
-    dice_panel_surface = pygame.Surface((dice_panel_rect.width, dice_panel_rect.height), pygame.SRCALPHA)
-    dice_panel_surface.fill(CHAT_COLOR)
-    screen.blit(dice_panel_surface, dice_panel_rect.topleft)
-
-    pygame.draw.rect(screen, VIOLET, dice_panel_rect, 1, border_radius=10)
-    input_text = CHAT_FONT.render(f"Enter Dice Value (1-6): {input_value}", True, CHAT_FONT_COLOR)
-    screen.blit(input_text, (dice_panel_rect.x + 10, dice_panel_rect.y + 10))
+    # dice_panel_rect = pygame.Rect(panel_x + 10, SCREEN_HEIGHT - 63, panel_width - 20, 50)
+    # dice_panel_surface = pygame.Surface((dice_panel_rect.width, dice_panel_rect.height), pygame.SRCALPHA)
+    # dice_panel_surface.fill(CHAT_COLOR)
+    # screen.blit(dice_panel_surface, dice_panel_rect.topleft)
+    #
+    # pygame.draw.rect(screen, VIOLET, dice_panel_rect, 1, border_radius=10)
+    # input_text = CHAT_FONT.render(f"Enter Dice Value (1-6): {input_value}", True, CHAT_FONT_COLOR)
+    # screen.blit(input_text, (dice_panel_rect.x + 10, dice_panel_rect.y + 10))
 
     return total_chat_height
 
@@ -360,7 +359,7 @@ def handle_chat_scroll(event, total_chat_height):
         chat_scroll_offset = max(0, chat_scroll_offset)  # Prevent scrolling above the first message
 
         # Calculate maximum scroll offset
-        visible_height = SCREEN_HEIGHT - (GRID_Y_OFFSET + 70 + 100)  # Chat panel height
+        visible_height = SCREEN_HEIGHT - (GRID_Y_OFFSET + 65 + 100)  # Chat panel height
         max_offset = max(0, total_chat_height - visible_height)  # Include bottom padding
         chat_scroll_offset = min(chat_scroll_offset, max_offset)  # Prevent scrolling below the last message
 
@@ -630,12 +629,10 @@ def get_dice_value():
                 exit()
 
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN and input_value.isdigit() and 1 <= int(input_value) <= 6:
-                    return int(input_value)
+                if event.unicode.isdigit() and 1 <= int(event.unicode) <= 6:
+                    return int(event.unicode)  # Immediately return the value once a valid number is pressed
                 elif event.key == pygame.K_BACKSPACE:
                     input_value = input_value[:-1]
-                else:
-                    input_value += event.unicode
 
             # Scroll events
             elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -754,7 +751,7 @@ while running:
                     elif new_pos in ladders:
                         animate_movement(player_positions[current_player_idx], new_pos, current_player_idx)
                         animate_movement(new_pos, ladders[new_pos], current_player_idx, ladder_bg_mapping[new_pos])
-                        update_chat(f"{current_player} is embraced by Hedone’s delight and Himeros’ desire! You may now experience a delightful action of your choosing!")
+                        update_chat(f"{current_player} is embraced by Hedone’s delight! You may now experience a delightful action of your choosing!")
                         ladder_tiles[new_pos] = ladder_hedone_mapping[new_pos]
                         player_positions[current_player_idx] = ladders[new_pos]
                         countdown_end = time.time() + player_positions[current_player_idx] * 2
