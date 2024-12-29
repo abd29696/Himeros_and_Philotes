@@ -29,17 +29,10 @@ PANEL_WIDTH = SCREEN_WIDTH - GRID_WIDTH - GRID_X_OFFSET * 3  # Adjust for equal 
 CHAT_GRID_FONT = pygame.font.Font("font/GideonRoman-Regular.ttf", 17)
 CHAT_FONT = pygame.font.Font("font/GideonRoman-Regular.ttf", 17)
 GRID_FONT = pygame.font.Font("font/GentiumPlus-Bold.ttf", 21)
-TIMER_FONT = pygame.font.Font("font/GentiumPlus-Bold.ttf", 21)
+TIMER_FONT = pygame.font.Font("font/GentiumPlus-Bold.ttf", 49)
 
 
-# Colors
-TRANSPARENT = (0, 0, 0, 3)
-WHITE = (255, 255, 255, 3)
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
-YELLOW = (255, 255, 0)
+
 GOLD = (255, 215, 0)
 VIOLET = (97, 4, 161)
 
@@ -60,7 +53,8 @@ PLAYER_COLORS = {
     "Semele": (255, 192, 203),   # Pink
     "Io": (15, 82, 186),         # Sapphire Blue
     "Medusa": (3, 48, 41),       # Green
-    "Hedone": (97, 4, 161),       # Violet
+    "Hedone": (139, 0, 0),      #Red
+    "HP": (97, 4, 161),       # Violet
 }
 
 
@@ -77,6 +71,8 @@ PLAYER_IMAGES = []
 
 MEDUSA_IMAGE = "char/medusa.png"
 HEDONE_IMAGE = "char/hedone.png"
+HP_IMAGE = "char/hp.png"
+
 
 MEDUSA_IMAGES = [
     pygame.image.load(f"char/medusa/medusa{i}.png") for i in range(1, 11)
@@ -199,11 +195,14 @@ def update_chat(action_message, player_index=None):
     global chat_scroll_offset
 
     if player_index is None:
-        image_path = HEDONE_IMAGE
-        player_name = "Hedone"
+        image_path = HP_IMAGE
+        player_name = "HP"
     elif player_index == 500:
         image_path = MEDUSA_IMAGE
         player_name = "Medusa"
+    elif player_index == 300:
+        image_path = HEDONE_IMAGE
+        player_name = "Hedone"
     else:
         image_path = None
         player_name = players[player_index]
@@ -260,7 +259,8 @@ def draw_right_panel(countdown_time, input_value, chat_scroll_offset):
     screen.blit(timer_surface, timer_rect.topleft)
 
     pygame.draw.rect(screen, VIOLET, timer_rect, 2, border_radius=10)  # Outline
-    screen.blit(timer_text, (timer_rect.x + 10, timer_rect.y + 10))
+    timer_text_rect = timer_text.get_rect(center=timer_rect.center)
+    screen.blit(timer_text, timer_text_rect.topleft)
 
     # Chat surface for scrolling
     chat_y_offset = GRID_Y_OFFSET + 81
@@ -634,6 +634,8 @@ def get_dice_value():
                 elif event.key == pygame.K_BACKSPACE:
                     input_value = input_value[:-1]
 
+
+
             # Scroll events
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 4:  # Scroll up
@@ -751,7 +753,7 @@ while running:
                     elif new_pos in ladders:
                         animate_movement(player_positions[current_player_idx], new_pos, current_player_idx)
                         animate_movement(new_pos, ladders[new_pos], current_player_idx, ladder_bg_mapping[new_pos])
-                        update_chat(f"{current_player} is embraced by Hedone’s delight! You may now experience a delightful action of your choosing!")
+                        update_chat(f"{current_player} is embraced by Hedone’s delight! You may get a kiss!", 300)
                         ladder_tiles[new_pos] = ladder_hedone_mapping[new_pos]
                         player_positions[current_player_idx] = ladders[new_pos]
                         countdown_end = time.time() + player_positions[current_player_idx] * 2
