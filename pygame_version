@@ -41,11 +41,28 @@ GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
 GOLD = (255, 215, 0)
+VIOLET = (97, 4, 161)
 
-GRID_COLOR = (255, 255, 255, 3)
-GRID_FONT_COLOR = (33, 33, 33, 1)
-CHAT_COLOR = (255, 255, 255, 3)
-CHAT_FONT_COLOR = (33, 33, 33, 1)
+GRID_COLOR = (21, 21, 21, 1)
+GRID_FONT_COLOR = (255, 255, 255, 3)
+CHAT_COLOR = (97, 4, 161, 17)
+CHAT_FONT_COLOR = (255, 255, 255, 3)
+
+# Colors associated with each player
+PLAYER_COLORS = {
+    "Eros": (13, 32, 62),        #Blue
+    "Psyche": (204, 162, 42),    # Gold
+    "Ares": (128, 0, 32),        # Burgundy
+    "Aphrodite": (255, 215, 0),  # Gold
+    "Eos": (255, 165, 0),        # Orange
+    "Zeus": (255, 215, 0),       # Gold
+    "Hera": (80, 200, 120),      # Emerald
+    "Semele": (255, 192, 203),   # Pink
+    "Io": (15, 82, 186),         # Sapphire Blue
+    "Medusa": (3, 48, 41),       # Green
+    "Hedone": (97, 4, 161),       # Violet
+}
+
 
 def apply_rounded_mask(image, radius=CELL_SIZE // 5):
     mask = pygame.Surface((CELL_SIZE, CELL_SIZE), pygame.SRCALPHA)
@@ -184,10 +201,13 @@ def update_chat(action_message, player_index=None):
 
     if player_index is None:
         image_path = HEDONE_IMAGE
+        player_name = "Hedone"
     elif player_index == 500:
         image_path = MEDUSA_IMAGE
+        player_name = "Medusa"
     else:
         image_path = None
+        player_name = players[player_index]
 
     if image_path:
         chat_image = pygame.image.load(image_path).convert_alpha()
@@ -201,22 +221,22 @@ def update_chat(action_message, player_index=None):
     # Wrap the text for the chat bubble
     wrapped_lines = wrap_text(action_message, CHAT_FONT, PANEL_WIDTH - 110)  # Adjust width for padding
 
-    # Add to the chat panel
-    chat_panel.append((player_index, wrapped_lines, chat_image))
+    # Use the player color for the chat bubble
+    player_color = PLAYER_COLORS.get(player_name, CHAT_FONT_COLOR)  # Default to font color if not found
+    chat_panel.append((player_name, player_color, wrapped_lines, chat_image))
 
     # Calculate the total height of chat content
-    total_height = sum(len(message[1]) * (CHAT_FONT.get_height() + 5) + 20 for message in chat_panel)  # Add space between bubbles
+    total_height = sum(len(message[2]) * (CHAT_FONT.get_height() + 5) + 20 for message in chat_panel)  # Add space between bubbles
 
     # Trim messages if the total height exceeds the chat panel height
     visible_height = SCREEN_HEIGHT - (GRID_Y_OFFSET + 70 + 100)  # Adjusted visible height
     while total_height > visible_height:
         chat_panel.pop(0)
-        total_height = sum(len(message[1]) * (CHAT_FONT.get_height() + 5) + 20 for message in chat_panel)
+        total_height = sum(len(message[2]) * (CHAT_FONT.get_height() + 5) + 20 for message in chat_panel)
 
     # Auto-scroll to the bottom
     max_offset = max(0, total_height - visible_height)
     chat_scroll_offset = max_offset
-
 
 
 # Chat scrolling offset
@@ -234,8 +254,13 @@ def draw_right_panel(countdown_time, input_value, chat_scroll_offset):
     seconds = remaining_time % 60
     timer_text = TIMER_FONT.render(f"Time Left: {minutes:02}:{seconds:02}", True, CHAT_FONT_COLOR)
     timer_rect = pygame.Rect(panel_x + 10, GRID_Y_OFFSET, panel_width - 20, 50)
-    pygame.draw.rect(screen, CHAT_COLOR, timer_rect, border_radius=10)  # Rounded corners
-    pygame.draw.rect(screen, CHAT_FONT_COLOR, timer_rect, 1, border_radius=10)  # Outline
+
+    # Transparent background for the timer
+    timer_surface = pygame.Surface((timer_rect.width, timer_rect.height), pygame.SRCALPHA)
+    timer_surface.fill(CHAT_COLOR)  # CHAT_COLOR = (97, 4, 161, 29)
+    screen.blit(timer_surface, timer_rect.topleft)
+
+    pygame.draw.rect(screen, VIOLET, timer_rect, 1, border_radius=10)  # Outline
     screen.blit(timer_text, (timer_rect.x + 10, timer_rect.y + 10))
 
     # Chat surface for scrolling
@@ -246,8 +271,7 @@ def draw_right_panel(countdown_time, input_value, chat_scroll_offset):
         panel_width - 20,
         SCREEN_HEIGHT - chat_y_offset - 75
     )
-    pygame.draw.rect(screen, CHAT_COLOR, chat_rect_outline, border_radius=10)
-    pygame.draw.rect(screen, CHAT_FONT_COLOR, chat_rect_outline, 1, border_radius=10)
+    pygame.draw.rect(screen, VIOLET, chat_rect_outline, 1, border_radius=10)
 
     chat_rect = pygame.Rect(
         chat_rect_outline.x + 5,
@@ -256,42 +280,53 @@ def draw_right_panel(countdown_time, input_value, chat_scroll_offset):
         chat_rect_outline.height - 10
     )
 
+    # Transparent chat surface
+    chat_surface = pygame.Surface((chat_rect.width, chat_rect.height), pygame.SRCALPHA)
+    chat_surface.fill(CHAT_COLOR)
+
     # Adjusted chat surface height
     total_chat_height = sum(
-        len(message[1]) * (CHAT_FONT.get_height() + 3) + 10  # Reduced line and bubble spacing
+        len(message[2]) * (CHAT_FONT.get_height() + 3) + 10
         for message in chat_panel
     )
-    chat_surface = pygame.Surface(
+    chat_content_surface = pygame.Surface(
         (chat_rect.width, max(total_chat_height, chat_rect.height)),
         pygame.SRCALPHA
     )
 
     max_text_width = chat_rect.width - 83
-    y_position = 5  # Reduced padding at the top
+    y_position = 5
 
-    for player_index, wrapped_lines, chat_image in chat_panel:
-        bubble_height = len(wrapped_lines) * (CHAT_FONT.get_height() + 3) + 10  # Reduced padding inside the bubble
+    for player_name, player_color, wrapped_lines, chat_image in chat_panel:
+        bubble_height = len(wrapped_lines) * (CHAT_FONT.get_height() + 3) + 10
         bubble_rect = pygame.Rect(55, y_position, max_text_width, bubble_height)
 
-        pygame.draw.rect(chat_surface, (240, 240, 240), bubble_rect, border_radius=10)  # Bubble color
-        pygame.draw.rect(chat_surface, CHAT_FONT_COLOR, bubble_rect, 1, border_radius=10)  # Border
+        # Fill the bubble with the player's color
+        pygame.draw.rect(chat_content_surface, player_color, bubble_rect, border_radius=10)
+        pygame.draw.rect(chat_content_surface, CHAT_FONT_COLOR, bubble_rect, 1, border_radius=10)  # Border
 
+        # Render the text lines
         for i, line in enumerate(wrapped_lines):
             rendered_text = CHAT_FONT.render(line, True, CHAT_FONT_COLOR)
-            chat_surface.blit(rendered_text, (bubble_rect.x + 10, y_position + 5 + i * (CHAT_FONT.get_height() + 3)))
+            chat_content_surface.blit(rendered_text, (bubble_rect.x + 10, y_position + 5 + i * (CHAT_FONT.get_height() + 3)))
 
         image_x = bubble_rect.x - 45
-        image_y = y_position + bubble_height - 37  # Adjusted for smaller height
-        chat_surface.blit(chat_image, (image_x, image_y))
+        image_y = y_position + bubble_height - 37
+        chat_content_surface.blit(chat_image, (image_x, image_y))
 
-        y_position += bubble_rect.height + 15  # Reduced spacing between bubbles
+        y_position += bubble_rect.height + 15
 
-    screen.blit(chat_surface, (chat_rect.x, chat_rect.y), area=pygame.Rect(0, chat_scroll_offset, chat_rect.width, chat_rect.height))
+    # Blit chat content with scrolling
+    chat_surface.blit(chat_content_surface, (0, -chat_scroll_offset))
+    screen.blit(chat_surface, chat_rect.topleft)
 
     # Draw dice panel
     dice_panel_rect = pygame.Rect(panel_x + 10, SCREEN_HEIGHT - 63, panel_width - 20, 50)
-    pygame.draw.rect(screen, CHAT_COLOR, dice_panel_rect, border_radius=10)
-    pygame.draw.rect(screen, CHAT_FONT_COLOR, dice_panel_rect, 1, border_radius=10)
+    dice_panel_surface = pygame.Surface((dice_panel_rect.width, dice_panel_rect.height), pygame.SRCALPHA)
+    dice_panel_surface.fill(CHAT_COLOR)
+    screen.blit(dice_panel_surface, dice_panel_rect.topleft)
+
+    pygame.draw.rect(screen, VIOLET, dice_panel_rect, 1, border_radius=10)
     input_text = CHAT_FONT.render(f"Enter Dice Value (1-6): {input_value}", True, CHAT_FONT_COLOR)
     screen.blit(input_text, (dice_panel_rect.x + 10, dice_panel_rect.y + 10))
 
@@ -349,14 +384,19 @@ def draw_board(action_positions, snake_tiles={}, ladder_tiles={}):
             elif position in ladder_tiles:
                 screen.blit(ladder_tiles[position], rect.topleft)
 
-            overlay = pygame.Surface((CELL_SIZE, CELL_SIZE), pygame.SRCALPHA)
-            overlay.fill((173, 216, 230, 8))  # Pastel blue with 30% opacity
-            pygame.draw.rect(overlay, (0, 0, 0, 0), rect, border_radius=10)  # Rounded cell edges
-            screen.blit(overlay, rect.topleft)
-            pygame.draw.rect(screen, GRID_FONT_COLOR, rect, 1, border_radius=10)
 
+
+            overlay = pygame.Surface((CELL_SIZE, CELL_SIZE), pygame.SRCALPHA)
+            overlay.fill(CHAT_COLOR)
+            pygame.draw.rect(screen, VIOLET, rect, 2, border_radius=10)
+            screen.blit(overlay, rect.topleft)
+            # pygame.draw.rect(screen, GRID_FONT_COLOR, rect, 1, border_radius=10)
+            #pygame.draw.rect(screen, (97, 4, 161), rect, border_radius=10)
+
+            # Render the number in the center of the cell
             text = GRID_FONT.render(str(position), True, GRID_FONT_COLOR)
-            screen.blit(text, (rect.x + 5, rect.y + 5))
+            text_rect = text.get_rect(center=(rect_x + CELL_SIZE // 2, rect_y + CELL_SIZE // 2))
+            screen.blit(text, text_rect)
 
 
 
@@ -404,35 +444,36 @@ snakes, ladders, snake_medusa_mapping, ladder_hedone_mapping, snake_bg_mapping, 
 
 # Draw snakes and ladders using custom styles
 def draw_snakes_and_ladders():
-    for start, end in snakes.items():
-        start_pos = get_coordinates(start)
-        end_pos = get_coordinates(end)
-
-        # Create curvy wavy effect for snakes
-        num_segments = 10  # Number of segments for the curve
-        x_diff = (end_pos[0] - start_pos[0]) / num_segments
-        y_diff = (end_pos[1] - start_pos[1]) / num_segments
-        points = []
-        for i in range(num_segments + 1):
-            x = start_pos[0] + i * x_diff + CELL_SIZE // 6 * (-1)**i
-            y = start_pos[1] + i * y_diff
-            points.append((x + CELL_SIZE // 2, y + CELL_SIZE // 2))  # Center-align the wave
-
-        # Snakes are now invisible
-        pygame.draw.lines(screen, TRANSPARENT, False, points, 8)
-
-    for start, end in ladders.items():
-        start_pos = get_coordinates(start)
-        end_pos = get_coordinates(end)
-        # Ladders are now invisible
-        pygame.draw.line(screen, TRANSPARENT, (start_pos[0] + CELL_SIZE // 2, start_pos[1] + CELL_SIZE // 2),
-                         (end_pos[0] + CELL_SIZE // 2, end_pos[1] + CELL_SIZE // 2), 5)  # Draw the wavy snake
-
-    for start, end in ladders.items():
-        start_pos = get_coordinates(start)
-        end_pos = get_coordinates(end)
-        pygame.draw.line(screen, GOLD, (start_pos[0] + CELL_SIZE // 2, start_pos[1] + CELL_SIZE // 2),
-                         (end_pos[0] + CELL_SIZE // 2, end_pos[1] + CELL_SIZE // 2), 5)  # Shiny golden ladder
+    pass
+    # for start, end in snakes.items():
+    #     start_pos = get_coordinates(start)
+    #     end_pos = get_coordinates(end)
+    #
+    #     # Create curvy wavy effect for snakes
+    #     num_segments = 10  # Number of segments for the curve
+    #     x_diff = (end_pos[0] - start_pos[0]) / num_segments
+    #     y_diff = (end_pos[1] - start_pos[1]) / num_segments
+    #     points = []
+    #     for i in range(num_segments + 1):
+    #         x = start_pos[0] + i * x_diff + CELL_SIZE // 6 * (-1)**i
+    #         y = start_pos[1] + i * y_diff
+    #         points.append((x + CELL_SIZE // 2, y + CELL_SIZE // 2))  # Center-align the wave
+    #
+    #     # Snakes are now invisible
+    #     pygame.draw.lines(screen, TRANSPARENT, False, points, 8)
+    #
+    # for start, end in ladders.items():
+    #     start_pos = get_coordinates(start)
+    #     end_pos = get_coordinates(end)
+    #     # Ladders are now invisible
+    #     pygame.draw.line(screen, TRANSPARENT, (start_pos[0] + CELL_SIZE // 2, start_pos[1] + CELL_SIZE // 2),
+    #                      (end_pos[0] + CELL_SIZE // 2, end_pos[1] + CELL_SIZE // 2), 5)  # Draw the wavy snake
+    #
+    # for start, end in ladders.items():
+    #     start_pos = get_coordinates(start)
+    #     end_pos = get_coordinates(end)
+    #     pygame.draw.line(screen, GOLD, (start_pos[0] + CELL_SIZE // 2, start_pos[1] + CELL_SIZE // 2),
+    #                      (end_pos[0] + CELL_SIZE // 2, end_pos[1] + CELL_SIZE // 2), 5)  # Shiny golden ladder
 
 # Convert board index to screen coordinates
 def get_coordinates(position):
@@ -452,7 +493,6 @@ def get_coordinates(position):
 # Smooth movement animation
 def animate_movement(start, end, player_index, background_override=None):
     step = 1 if end > start else -1
-    scroll_offset = 0  # Ensure the chat panel scroll offset is passed
 
     for position in range(start, end + step, step):
         if background_override:
@@ -460,20 +500,33 @@ def animate_movement(start, end, player_index, background_override=None):
         else:
             screen.fill(GRID_COLOR)  # Clear screen to white
 
+        # Redraw the board and elements
         draw_board(action_positions, snake_tiles, ladder_tiles)
         draw_snakes_and_ladders()
         draw_players()
-        draw_right_panel(countdown_end, "", scroll_offset)
 
+        # Redraw the right panel
+        total_chat_height = sum(
+            len(message[2]) * (CHAT_FONT.get_height() + 3) + 10
+            for message in chat_panel
+        )
+        draw_right_panel(countdown_end, "", chat_scroll_offset)
+
+        # Draw the moving player with color outline
         x, y = get_coordinates(position)
-        x_centered = x + (CELL_SIZE - PLAYER_IMAGES[player_index].get_width()) // 2
-        y_centered = y + (CELL_SIZE - PLAYER_IMAGES[player_index].get_height()) // 2
+        player_color = PLAYER_COLORS.get(players[player_index], GRID_FONT_COLOR)
+        rect = pygame.Rect(x, y, CELL_SIZE, CELL_SIZE)
+        pygame.draw.rect(screen, player_color, rect, border_radius=10)  # Fill with player's color
 
-        screen.blit(PLAYER_IMAGES[player_index], (x_centered, y_centered))  # Align image with rounded cell padding
+        # Draw the player image
+        player_image = pygame.transform.smoothscale(PLAYER_IMAGES[player_index], (CELL_SIZE - 10, CELL_SIZE - 10))
+        image_x = x + (CELL_SIZE - player_image.get_width()) // 2
+        image_y = y + (CELL_SIZE - player_image.get_height()) // 2
+        screen.blit(player_image, (image_x, image_y))
+
+        # Render everything
         pygame.display.flip()
         time.sleep(0.2)
-
-
 
 
 # Load actions
@@ -591,9 +644,9 @@ def get_dice_value():
                 elif event.button == 5:  # Scroll down
                     total_chat_height = sum(
                         len(wrapped_lines) * (CHAT_FONT.get_height() + 10) + 10
-                        for _, wrapped_lines, _ in chat_panel  # Updated unpacking
+                        for _, _, wrapped_lines, _ in chat_panel  # Updated unpacking to match structure
                     )
-                    chat_panel_height = int(SCREEN_HEIGHT * 0.9) - int(SCREEN_HEIGHT * 0.1) - 70
+                    chat_panel_height = SCREEN_HEIGHT - (GRID_Y_OFFSET + 70 + 100)
                     scroll_offset = min(scroll_offset + 20, max(0, total_chat_height - chat_panel_height))
 
         screen.fill(GRID_COLOR)  # Clear screen to white
@@ -609,7 +662,20 @@ def get_dice_value():
 def draw_players():
     for i, position in enumerate(player_positions):
         x, y = get_coordinates(position)
-        screen.blit(PLAYER_IMAGES[i], (x, y))  # Align image with cell
+
+        # Fetch player's color
+        player_color = PLAYER_COLORS.get(players[i], GRID_FONT_COLOR)  # Default to grid font color if not found
+
+        # Draw a rounded rectangle filled with the player's color
+        rect = pygame.Rect(x, y, CELL_SIZE, CELL_SIZE)
+        pygame.draw.rect(screen, player_color, rect, border_radius=10)  # Fill with player's color
+
+        # Draw the player image on top of the colored cell
+        player_image = pygame.transform.smoothscale(PLAYER_IMAGES[i], (CELL_SIZE - 10, CELL_SIZE - 10))  # Slightly smaller
+        image_x = x + (CELL_SIZE - player_image.get_width()) // 2
+        image_y = y + (CELL_SIZE - player_image.get_height()) // 2
+        screen.blit(player_image, (image_x, image_y))
+
 
 # Main game loop
 running = True
