@@ -2,7 +2,7 @@ import pygame
 import random
 import time
 import cv2
-import pygame.freetype
+import json
 
 # Initialize Pygame
 pygame.init()
@@ -97,10 +97,10 @@ HEDONE_BACKGROUNDS = [
     pygame.image.load(f"char/hedone/hedone{i}.png") for i in range(1, 11)
 ]
 MEDUSA_BACKGROUNDS = [
-    pygame.transform.smoothscale(img, (int(GRID_WIDTH), GRID_HEIGHT)) for img in MEDUSA_BACKGROUNDS
+    pygame.transform.smoothscale(img, (int(GRID_WIDTH) + 15, GRID_HEIGHT + 15)) for img in MEDUSA_BACKGROUNDS
 ]
 HEDONE_BACKGROUNDS = [
-    pygame.transform.smoothscale(img, (int(GRID_WIDTH), GRID_HEIGHT)) for img in HEDONE_BACKGROUNDS
+    pygame.transform.smoothscale(img, (int(GRID_WIDTH) + 15, GRID_HEIGHT + 15)) for img in HEDONE_BACKGROUNDS
 ]
 
 MEDUSA_IMAGES = [
@@ -530,18 +530,8 @@ def animate_movement(start, end, player_index, background_override=None):
 
 # Load actions
 def load_actions():
-    actions = {
-        "L1": ["Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas pharetra maximus eros, non efficitur justo scelerisque id. Phasellus arcu nisi, dignissim eu lorem quis, faucibus facilisis mauris. Suspendisse potenti. Donec ultricies consectetur orci at feugiat. Proin finibus porttitor tellus in viverra."],
-        "L2": ["Action for L2"],
-        "L3": ["Action for L3"],
-        "L4": ["Action for L4"],
-        "L5": ["Action for L5"],
-        "L6": ["Action for L6"],
-        "L7": ["Action for L7"],
-        "L8": ["Action for L8"],
-        "L9": ["Action for L9"],
-        "L10": ["Action for L10"]
-    }
+    with open("actions.json", "r") as file:
+        actions = json.load(file)
     return actions
 
 actions = load_actions()
@@ -746,14 +736,14 @@ while running:
                     if new_pos in snakes:
                         animate_movement(player_positions[current_player_idx], new_pos, current_player_idx)
                         animate_movement(new_pos, snakes[new_pos], current_player_idx, snake_bg_mapping[new_pos])
-                        update_chat(f"{current_player} encountered Medusa's wrath! You now need to get Spanked!", 500)
+                        update_chat(f"{current_player} encountered Medusa's wrath! You will get Spanked w/ your next action!", 500)
                         snake_tiles[new_pos] = snake_medusa_mapping[new_pos]
                         player_positions[current_player_idx] = snakes[new_pos]
                         countdown_end = time.time() + player_positions[current_player_idx] * 2
                     elif new_pos in ladders:
                         animate_movement(player_positions[current_player_idx], new_pos, current_player_idx)
                         animate_movement(new_pos, ladders[new_pos], current_player_idx, ladder_bg_mapping[new_pos])
-                        update_chat(f"{current_player} is embraced by Hedone’s delight! You may get a kiss!", 300)
+                        update_chat(f"{current_player} is embraced by Hedone’s delight! You can give a kiss of your choice w/ your next action!", 300)
                         ladder_tiles[new_pos] = ladder_hedone_mapping[new_pos]
                         player_positions[current_player_idx] = ladders[new_pos]
                         countdown_end = time.time() + player_positions[current_player_idx] * 2
