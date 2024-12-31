@@ -46,12 +46,12 @@ PLAYER_COLORS = {
     "Eros": (13, 32, 62),        #Blue
     "Psyche": (204, 162, 42),    # Gold
     "Ares": (128, 0, 32),        # Burgundy
-    "Aphrodite": (255, 215, 0),  # Gold
-    "Eos": (255, 165, 0),        # Orange
-    "Zeus": (255, 215, 0),       # Gold
-    "Hera": (80, 200, 120),      # Emerald
-    "Semele": (255, 192, 203),   # Pink
-    "Io": (15, 82, 186),         # Sapphire Blue
+    "Aphrodite": (204, 162, 42),  # Gold
+    "Eos": (255, 140, 0),        # Orange
+    "Zeus": (204, 162, 42),       # Gold
+    "Hera": (0, 100, 0),      # Emerald
+    "Semele": (231, 84, 128),   # Pink
+    "Io": (0, 0, 139),         # Sapphire Blue
     "Medusa": (3, 48, 41),       # Green
     "Hedone": (139, 0, 0),      #Red
     "HP": (97, 4, 161),       # Violet
@@ -561,50 +561,29 @@ def get_action(position):
         return "No Action"
 
 # Initialize players
-def initialize_players():
-    global PLAYER_IMAGES
-    while True:
-        try:
-            num_players = int(input("Enter the number of players (2-4): "))
-            if num_players == 2:
-                player_names = ["Eros", "Psyche"]
-                update_chat("Welcome Eros and Psyche!")
-                PLAYER_IMAGES = [
-                    apply_rounded_mask(image) for image in load_player_images(2)
-                ]
-            elif num_players == 3:
-                player_names = ["Ares", "Aphrodite", "Eos"]
-                update_chat("Welcome Ares, Aphrodite, and Eos!")
-                PLAYER_IMAGES = [
-                    apply_rounded_mask(image) for image in load_player_images(2)
-                ]
-            elif num_players == 4:
-                player_names = ["Zeus", "Hera", "Semele", "Io"]
-                update_chat("Welcome Zeus, Hera, Semele, and Io!")
-                PLAYER_IMAGES = [
-                    apply_rounded_mask(image) for image in load_player_images(2)
-                ]
-            else:
-                print("Invalid number of players. Please choose between 2 and 4.")
-                continue
-
-            # Show start image for 5 seconds
-            # screen.blit(INTRO_IMAGE, (0, 0))
-            # pygame.display.flip()
-            # time.sleep(9)
-
-            play_intro_video()
-
-            break
-        except ValueError:
-            print("Invalid input. Please enter a number.")
-
+def initialize_players(num_players):
+    global PLAYER_IMAGES, players, player_positions, current_player_idx
+    if num_players == 2:
+        player_names = ["Eros", "Psyche"]
+        update_chat("Welcome Eros and Psyche!")
+        PLAYER_IMAGES = [
+            apply_rounded_mask(image) for image in load_player_images(2)
+        ]
+    elif num_players == 3:
+        player_names = ["Ares", "Aphrodite", "Eos"]
+        update_chat("Welcome Ares, Aphrodite, and Eos!")
+        PLAYER_IMAGES = [
+            apply_rounded_mask(image) for image in load_player_images(3)
+        ]
+    elif num_players == 4:
+        player_names = ["Zeus", "Hera", "Semele", "Io"]
+        update_chat("Welcome Zeus, Hera, Semele, and Io!")
+        PLAYER_IMAGES = [
+            apply_rounded_mask(image) for image in load_player_images(4)
+        ]
+    players = player_names
     player_positions = [1 for _ in range(num_players)]
-    return player_names, player_positions
-
-players, player_positions = initialize_players()
-current_player_idx = 0
-
+    current_player_idx = 0
 
 
 def get_dice_value():
@@ -674,94 +653,122 @@ snake_tiles = {}
 ladder_tiles = {}
 countdown_end = time.time()
 scroll_offset = 0
+players_initialized = False
+input_value = ""  # Store dynamic player input
+
+# Play the intro video
+play_intro_video()
+
+# Draw the board and right panel
+screen.fill(GRID_COLOR)  # Clear screen
+draw_board(action_positions, snake_tiles, ladder_tiles)
+draw_snakes_and_ladders()
+draw_right_panel(countdown_end, "", scroll_offset)
+pygame.display.flip()
+
+# Prompt in chat to enter the number of players
+update_chat("How many players are playing today?")
 
 while running:
-    screen.fill(GRID_COLOR)  # Clear screen to white
-    draw_board(action_positions, snake_tiles, ladder_tiles)
-    draw_snakes_and_ladders()
-    draw_players()
-    draw_right_panel(countdown_end, "", scroll_offset)
-
-    total_chat_height = draw_right_panel(countdown_end, "", chat_scroll_offset)
-
-    # for event in pygame.event.get():
-    #     if event.type == pygame.QUIT:
-    #         running = False
-    #     elif event.type == pygame.MOUSEBUTTONDOWN:
-    #         if event.button == 4:  # Scroll up
-    #             scroll_offset = max(0, scroll_offset - 20)
-    #         elif event.button == 5:  # Scroll down
-    #             # Limit scroll offset to not exceed total chat height
-    #             total_chat_height = sum(
-    #                 len(wrapped_lines) * (CHAT_FONT.get_height() + 10) + 10
-    #                 for _, wrapped_lines in chat_panel
-    #             )
-    #             chat_panel_height = int(SCREEN_HEIGHT * 0.9) - int(SCREEN_HEIGHT * 0.1) - 70
-    #             scroll_offset = min(scroll_offset + 20, max(0, total_chat_height - chat_panel_height))
-
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        elif event.type == pygame.MOUSEWHEEL:
-            # Handle scrolling of the chat
-            handle_chat_scroll(event, total_chat_height)
 
+        if not players_initialized:
+            # Handle keyboard input for number of players
+            if event.type == pygame.KEYDOWN:
+                if event.unicode.isdigit():  # Check if keypress is a digit
+                    input_value += event.unicode
 
+                    # Automatically validate when a valid number (2-4) is entered
+                    if input_value.isdigit() and 2 <= int(input_value) <= 4:
+                        num_players = int(input_value)
+                        initialize_players(num_players)
+                        players_initialized = True
+                        input_value = ""  # Reset input field
+                    elif len(input_value) >= 1:  # If input exceeds valid numbers, reset
+                        update_chat("Invalid input. Please enter a number between 2 and 4.")
+                        input_value = ""
 
-    if not winner:
-        dice_value = get_dice_value()
-        current_player = players[current_player_idx % len(players)]
-        # update_chat(f"{current_player} rolled a {dice_value}!")
+                elif event.key == pygame.K_BACKSPACE:  # Allow backspace
+                    input_value = input_value[:-1]
 
-        # Logic for rolling 6s
-        six_count = 0
-        turn_total = 0
+            # Update the display dynamically with the input
+            screen.fill(GRID_COLOR)  # Clear screen
+            draw_board(action_positions, snake_tiles, ladder_tiles)
+            draw_snakes_and_ladders()
+            draw_right_panel(countdown_end, f"Number of players: {input_value}", scroll_offset)
+            pygame.display.flip()
+        else:
+            # Main game logic after players are initialized
+            screen.fill(GRID_COLOR)  # Clear screen
+            draw_board(action_positions, snake_tiles, ladder_tiles)
+            draw_snakes_and_ladders()
+            draw_players()
+            draw_right_panel(countdown_end, "", scroll_offset)
 
-        while True:
-            if dice_value == 6:
-                six_count += 1
-                if six_count == 3:
-                    update_chat(f"{current_player} rolled three 6s! Turn skipped.")
-                    break
-                else:
-                    update_chat(f"{current_player} rolled a 6! Another chance!")
+            total_chat_height = draw_right_panel(countdown_end, "", chat_scroll_offset)
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                elif event.type == pygame.MOUSEWHEEL:
+                    # Handle scrolling of the chat
+                    handle_chat_scroll(event, total_chat_height)
+
+            if not winner:
                 dice_value = get_dice_value()
-            else:
-                turn_total += 6 * six_count + dice_value
-                new_pos = player_positions[current_player_idx] + turn_total
+                current_player = players[current_player_idx % len(players)]
 
-                if new_pos > 100:
-                    update_chat("Roll exceeds 100! Stay in place.")
-                else:
-                    if new_pos in snakes:
-                        animate_movement(player_positions[current_player_idx], new_pos, current_player_idx)
-                        animate_movement(new_pos, snakes[new_pos], current_player_idx, snake_bg_mapping[new_pos])
-                        update_chat(f"{current_player} encountered Medusa's wrath! You will get Spanked w/ your next action!", 500)
-                        snake_tiles[new_pos] = snake_medusa_mapping[new_pos]
-                        player_positions[current_player_idx] = snakes[new_pos]
-                        countdown_end = time.time() + player_positions[current_player_idx] * 2
-                    elif new_pos in ladders:
-                        animate_movement(player_positions[current_player_idx], new_pos, current_player_idx)
-                        animate_movement(new_pos, ladders[new_pos], current_player_idx, ladder_bg_mapping[new_pos])
-                        update_chat(f"{current_player} is embraced by Hedone’s delight! You can give a kiss of your choice w/ your next action!", 300)
-                        ladder_tiles[new_pos] = ladder_hedone_mapping[new_pos]
-                        player_positions[current_player_idx] = ladders[new_pos]
-                        countdown_end = time.time() + player_positions[current_player_idx] * 2
+                # Logic for rolling 6s
+                six_count = 0
+                turn_total = 0
+
+                while True:
+                    if dice_value == 6:
+                        six_count += 1
+                        if six_count == 3:
+                            update_chat(f"{current_player} rolled three 6s! Turn skipped.")
+                            break
+                        else:
+                            update_chat(f"{current_player} rolled a 6! Another chance!")
+                        dice_value = get_dice_value()
                     else:
-                        animate_movement(player_positions[current_player_idx], new_pos, current_player_idx)
-                        player_positions[current_player_idx] = new_pos
-                        countdown_end = time.time() + player_positions[current_player_idx] * 2
+                        turn_total += 6 * six_count + dice_value
+                        new_pos = player_positions[current_player_idx] + turn_total
 
-                    action = get_action(player_positions[current_player_idx])
-                    update_chat(action, current_player_idx)
+                        if new_pos > 100:
+                            update_chat("Roll exceeds 100! Stay in place.")
+                        else:
+                            if new_pos in snakes:
+                                animate_movement(player_positions[current_player_idx], new_pos, current_player_idx)
+                                animate_movement(new_pos, snakes[new_pos], current_player_idx, snake_bg_mapping[new_pos])
+                                update_chat(f"{current_player} encountered Medusa's wrath! You will get Spanked w/ your next action!", 500)
+                                snake_tiles[new_pos] = snake_medusa_mapping[new_pos]
+                                player_positions[current_player_idx] = snakes[new_pos]
+                                countdown_end = time.time() + player_positions[current_player_idx] * 2
+                            elif new_pos in ladders:
+                                animate_movement(player_positions[current_player_idx], new_pos, current_player_idx)
+                                animate_movement(new_pos, ladders[new_pos], current_player_idx, ladder_bg_mapping[new_pos])
+                                update_chat(f"{current_player} is embraced by Hedone’s delight! You can give a kiss of your choice w/ your next action!", 300)
+                                ladder_tiles[new_pos] = ladder_hedone_mapping[new_pos]
+                                player_positions[current_player_idx] = ladders[new_pos]
+                                countdown_end = time.time() + player_positions[current_player_idx] * 2
+                            else:
+                                animate_movement(player_positions[current_player_idx], new_pos, current_player_idx)
+                                player_positions[current_player_idx] = new_pos
+                                countdown_end = time.time() + player_positions[current_player_idx] * 2
 
-                    if player_positions[current_player_idx] == 100:
-                        winner = current_player
-                        update_chat(f"{winner} wins the game! Congratulations!")
+                            action = get_action(player_positions[current_player_idx])
+                            update_chat(action, current_player_idx)
 
-                break
+                            if player_positions[current_player_idx] == 100:
+                                winner = current_player
+                                update_chat(f"{winner} wins the game! Congratulations!")
 
-        current_player_idx = (current_player_idx + 1) % len(players)
+                        break
+
+                current_player_idx = (current_player_idx + 1) % len(players)
 
     pygame.display.flip()
 
