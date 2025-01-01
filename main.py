@@ -90,18 +90,27 @@ HEDONE_IMAGES = [
     for image in HEDONE_IMAGES
 ]
 
+
 MEDUSA_BACKGROUNDS = [
     pygame.image.load(f"char/medusa/medusa{i}.png") for i in range(1, 11)
 ]
 HEDONE_BACKGROUNDS = [
     pygame.image.load(f"char/hedone/hedone{i}.png") for i in range(1, 11)
 ]
+# MEDUSA_BACKGROUNDS = [
+#     pygame.transform.smoothscale(img, (int(GRID_WIDTH) + 15, GRID_HEIGHT + 15)) for img in MEDUSA_BACKGROUNDS
+# ]
+# HEDONE_BACKGROUNDS = [
+#     pygame.transform.smoothscale(img, (int(GRID_WIDTH) + 15, GRID_HEIGHT + 15)) for img in HEDONE_BACKGROUNDS
+# ]
+
 MEDUSA_BACKGROUNDS = [
-    pygame.transform.smoothscale(img, (int(GRID_WIDTH) + 15, GRID_HEIGHT + 15)) for img in MEDUSA_BACKGROUNDS
+    pygame.transform.smoothscale(img, (int(SCREEN_WIDTH), SCREEN_HEIGHT)) for img in MEDUSA_BACKGROUNDS
 ]
 HEDONE_BACKGROUNDS = [
-    pygame.transform.smoothscale(img, (int(GRID_WIDTH) + 15, GRID_HEIGHT + 15)) for img in HEDONE_BACKGROUNDS
+    pygame.transform.smoothscale(img, (int(SCREEN_WIDTH), SCREEN_HEIGHT)) for img in HEDONE_BACKGROUNDS
 ]
+
 
 MEDUSA_IMAGES = [
     apply_rounded_mask(pygame.transform.smoothscale(image, (CELL_SIZE, CELL_SIZE)))
