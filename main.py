@@ -8,8 +8,7 @@ import os
 # Initialize Pygame
 pygame.init()
 character_actions = {}
-# Screen dimensions (16:9 aspect ratio)
-SCREEN_WIDTH, SCREEN_HEIGHT = 1475, 830
+SCREEN_WIDTH, SCREEN_HEIGHT = 1512, 945
 GRID_SIZE = 10
 GRID_X_OFFSET = 20  # Space on the left
 PANEL_X_OFFSET = GRID_X_OFFSET  # Match left grid offset
@@ -98,20 +97,12 @@ MEDUSA_BACKGROUNDS = [
 HEDONE_BACKGROUNDS = [
     pygame.image.load(f"char/hedone/hedone{i}.png") for i in range(1, 11)
 ]
-# MEDUSA_BACKGROUNDS = [
-#     pygame.transform.smoothscale(img, (int(GRID_WIDTH) + 15, GRID_HEIGHT + 15)) for img in MEDUSA_BACKGROUNDS
-# ]
-# HEDONE_BACKGROUNDS = [
-#     pygame.transform.smoothscale(img, (int(GRID_WIDTH) + 15, GRID_HEIGHT + 15)) for img in HEDONE_BACKGROUNDS
-# ]
-
 MEDUSA_BACKGROUNDS = [
-    pygame.transform.smoothscale(img, (int(SCREEN_WIDTH), SCREEN_HEIGHT)) for img in MEDUSA_BACKGROUNDS
+    pygame.transform.smoothscale(img, (int(GRID_WIDTH) + 15, GRID_HEIGHT + 15)) for img in MEDUSA_BACKGROUNDS
 ]
 HEDONE_BACKGROUNDS = [
-    pygame.transform.smoothscale(img, (int(SCREEN_WIDTH), SCREEN_HEIGHT)) for img in HEDONE_BACKGROUNDS
+    pygame.transform.smoothscale(img, (int(GRID_WIDTH) + 15, GRID_HEIGHT + 15)) for img in HEDONE_BACKGROUNDS
 ]
-
 
 MEDUSA_IMAGES = [
     apply_rounded_mask(pygame.transform.smoothscale(image, (CELL_SIZE, CELL_SIZE)))
@@ -122,10 +113,6 @@ HEDONE_IMAGES = [
     for image in HEDONE_IMAGES
 ]
 
-
-
-# Load single intro image
-INTRO_IMAGE = pygame.transform.smoothscale(pygame.image.load("char/io.png"), (int(SCREEN_WIDTH), SCREEN_HEIGHT))
 
 INTRO_VIDEO_PATH = "char/intro/intro.mp4"
 
@@ -194,7 +181,7 @@ def load_player_images(num_players):
 
 
 # Initialize screen
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
 pygame.display.set_caption("Himeros and Philotes")
 
 # Chat panel setup
@@ -227,7 +214,7 @@ def update_chat(action_message, player_index=None):
         chat_image = pygame.transform.smoothscale(chat_image, (35, 35))
 
     # Wrap the text for the chat bubble
-    wrapped_lines = wrap_text(action_message, CHAT_FONT, PANEL_WIDTH - 110)  # Adjust width for padding
+    wrapped_lines = wrap_text(action_message, CHAT_FONT, PANEL_WIDTH - 130)  # Adjust width for padding
 
     # Use the player color for the chat bubble
     player_color = PLAYER_COLORS.get(player_name, CHAT_FONT_COLOR)  # Default to font color if not found
@@ -273,12 +260,12 @@ def draw_right_panel(countdown_time, input_value, chat_scroll_offset):
     screen.blit(timer_text, timer_text_rect.topleft)
 
     # Chat surface for scrolling
-    chat_y_offset = GRID_Y_OFFSET + 81
+    chat_y_offset = GRID_Y_OFFSET + 93
     chat_rect_outline = pygame.Rect(
         panel_x + 10,
         chat_y_offset,
         panel_width - 20,
-        SCREEN_HEIGHT - chat_y_offset - 15
+        SCREEN_HEIGHT - chat_y_offset - 10
     )
     pygame.draw.rect(screen, VIOLET, chat_rect_outline, 2, border_radius=10)
 
@@ -329,15 +316,6 @@ def draw_right_panel(countdown_time, input_value, chat_scroll_offset):
     chat_surface.blit(chat_content_surface, (0, -chat_scroll_offset))
     screen.blit(chat_surface, chat_rect.topleft)
 
-    # Draw dice panel
-    # dice_panel_rect = pygame.Rect(panel_x + 10, SCREEN_HEIGHT - 63, panel_width - 20, 50)
-    # dice_panel_surface = pygame.Surface((dice_panel_rect.width, dice_panel_rect.height), pygame.SRCALPHA)
-    # dice_panel_surface.fill(CHAT_COLOR)
-    # screen.blit(dice_panel_surface, dice_panel_rect.topleft)
-    #
-    # pygame.draw.rect(screen, VIOLET, dice_panel_rect, 1, border_radius=10)
-    # input_text = CHAT_FONT.render(f"Enter Dice Value (1-6): {input_value}", True, CHAT_FONT_COLOR)
-    # screen.blit(input_text, (dice_panel_rect.x + 10, dice_panel_rect.y + 10))
 
     return total_chat_height
 
@@ -781,7 +759,7 @@ while running:
                                 animate_movement(player_positions[current_player_idx], new_pos, current_player_idx)
                                 animate_movement(new_pos, snakes[new_pos], current_player_idx,
                                                  snake_bg_mapping[new_pos])
-                                update_chat(f"{current_player} encountered Medusa's wrath!", 500)
+                                update_chat(f"{current_player} encountered Medusa's wrath! Get Spanked!", 500)
                                 snake_tiles[new_pos] = snake_medusa_mapping[new_pos]
                                 player_positions[current_player_idx] = snakes[new_pos]
                                 countdown_end = time.time() + player_positions[current_player_idx] * 2
@@ -789,7 +767,7 @@ while running:
                                 animate_movement(player_positions[current_player_idx], new_pos, current_player_idx)
                                 animate_movement(new_pos, ladders[new_pos], current_player_idx,
                                                  ladder_bg_mapping[new_pos])
-                                update_chat(f"{current_player} is embraced by Hedone’s delight!", 300)
+                                update_chat(f"{current_player} is embraced by Hedone’s delight! Kiss! Kiss! Kiss!", 300)
                                 ladder_tiles[new_pos] = ladder_hedone_mapping[new_pos]
                                 player_positions[current_player_idx] = ladders[new_pos]
                                 countdown_end = time.time() + player_positions[current_player_idx] * 2
