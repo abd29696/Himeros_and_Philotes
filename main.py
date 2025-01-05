@@ -3,10 +3,11 @@ import random
 import time
 import cv2
 import json
+import os
 
 # Initialize Pygame
 pygame.init()
-
+character_actions = {}
 # Screen dimensions (16:9 aspect ratio)
 SCREEN_WIDTH, SCREEN_HEIGHT = 1475, 830
 GRID_SIZE = 10
@@ -171,21 +172,21 @@ def load_player_images(num_players):
         return pygame.transform.smoothscale(image, (CELL_SIZE, CELL_SIZE))
     if num_players == 2:
         return [
-            load_high_quality_image("char/eros.png"),
-            load_high_quality_image("char/psyche.png")
+            load_high_quality_image("char/eros/eros.png"),
+            load_high_quality_image("char/psyche/psyche.png")
         ]
     elif num_players == 3:
         return [
-            load_high_quality_image("char/ares.png"),
-            load_high_quality_image("char/aphrodite.png"),
-            load_high_quality_image("char/eos.png")
+            load_high_quality_image("char/ares/ares.png"),
+            load_high_quality_image("char/aphrodite/aphrodite.png"),
+            load_high_quality_image("char/eos/eos.png")
         ]
     elif num_players == 4:
         return [
-            load_high_quality_image("char/zeus.png"),
-            load_high_quality_image("char/hera.png"),
-            load_high_quality_image("char/semele.png"),
-            load_high_quality_image("char/io.png")
+            load_high_quality_image("char/zeus/zeus.png"),
+            load_high_quality_image("char/hera/hera.png"),
+            load_high_quality_image("char/semele/semele.png"),
+            load_high_quality_image("char/io/io.png")
         ]
 
     return []
@@ -537,62 +538,89 @@ def animate_movement(start, end, player_index, background_override=None):
         time.sleep(0.2)
 
 
-# Load actions
-def load_actions():
-    with open("actions.json", "r") as file:
-        actions = json.load(file)
-    return actions
+def load_character_actions(character_name):
+    """
+    Loads actions for a specific character from a JSON file.
+    """
+    try:
+        base_path = "char"  # Root directory for character files
+        file_path = os.path.join(base_path, character_name.lower(), f"{character_name.lower()}_actions.json")
 
-actions = load_actions()
+        with open(file_path, "r", encoding="utf-8") as file:
+            return json.load(file)
+    except FileNotFoundError:
+        print(f"Actions file not found for {character_name}. Expected path: {file_path}")
+    except json.JSONDecodeError as e:
+        print(f"JSON decoding error for {character_name}: {e}")
+    except Exception as e:
+        print(f"Unexpected error loading actions for {character_name}: {e}")
+    return {}
 
-def get_action(position):
+def get_action(position, current_player):
+    """
+    Get a random action for the current player based on their position.
+    """
+    actions = character_actions.get(current_player, {})
+
+    if not actions:
+        return f"No actions available for {current_player}"
+
     if 1 <= position <= 10:
-        return random.choice(actions["L1"])
+        return random.choice(actions.get("L1", ["No Action"]))
     elif 11 <= position <= 20:
-        return random.choice(actions["L2"])
+        return random.choice(actions.get("L2", ["No Action"]))
     elif 21 <= position <= 30:
-        return random.choice(actions["L3"])
+        return random.choice(actions.get("L3", ["No Action"]))
     elif 31 <= position <= 40:
-        return random.choice(actions["L4"])
+        return random.choice(actions.get("L4", ["No Action"]))
     elif 41 <= position <= 50:
-        return random.choice(actions["L5"])
+        return random.choice(actions.get("L5", ["No Action"]))
     elif 51 <= position <= 60:
-        return random.choice(actions["L6"])
+        return random.choice(actions.get("L6", ["No Action"]))
     elif 61 <= position <= 70:
-        return random.choice(actions["L7"])
+        return random.choice(actions.get("L7", ["No Action"]))
     elif 71 <= position <= 80:
-        return random.choice(actions["L8"])
+        return random.choice(actions.get("L8", ["No Action"]))
     elif 81 <= position <= 90:
-        return random.choice(actions["L9"])
+        return random.choice(actions.get("L9", ["No Action"]))
     elif 91 <= position <= 100:
-        return random.choice(actions["L10"])
+        return random.choice(actions.get("L10", ["No Action"]))
     else:
         return "No Action"
 
+
 # Initialize players
 def initialize_players(num_players):
-    global PLAYER_IMAGES, players, player_positions, current_player_idx
-    if num_players == 2:
-        player_names = ["Eros", "Psyche"]
-        update_chat("Welcome Eros and Psyche!")
+    """
+    Initializes players with their respective actions.
+    """
+    global PLAYER_IMAGES, players, player_positions, current_player_idx, character_actions
+
+    player_mapping = {
+        2: ["Eros", "Psyche"],
+        3: ["Ares", "Aphrodite", "Eos"],
+        4: ["Zeus", "Hera", "Semele", "Io"]
+    }
+
+    if num_players in player_mapping:
+        player_names = player_mapping[num_players]
+        update_chat(f"Welcome {' and '.join(player_names)}!")
         PLAYER_IMAGES = [
-            apply_rounded_mask(image) for image in load_player_images(2)
+            apply_rounded_mask(image) for image in load_player_images(num_players)
         ]
-    elif num_players == 3:
-        player_names = ["Ares", "Aphrodite", "Eos"]
-        update_chat("Welcome Ares, Aphrodite, and Eos!")
-        PLAYER_IMAGES = [
-            apply_rounded_mask(image) for image in load_player_images(3)
-        ]
-    elif num_players == 4:
-        player_names = ["Zeus", "Hera", "Semele", "Io"]
-        update_chat("Welcome Zeus, Hera, Semele, and Io!")
-        PLAYER_IMAGES = [
-            apply_rounded_mask(image) for image in load_player_images(4)
-        ]
+    else:
+        print(f"Invalid number of players: {num_players}")
+        return
+
     players = player_names
     player_positions = [1 for _ in range(num_players)]
     current_player_idx = 0
+
+    # Load character-specific actions
+    character_actions.clear()
+    for player_name in players:
+        character_actions[player_name] = load_character_actions(player_name)
+
 
 
 def get_dice_value():
@@ -751,15 +779,17 @@ while running:
                         else:
                             if new_pos in snakes:
                                 animate_movement(player_positions[current_player_idx], new_pos, current_player_idx)
-                                animate_movement(new_pos, snakes[new_pos], current_player_idx, snake_bg_mapping[new_pos])
-                                update_chat(f"{current_player} encountered Medusa's wrath! You will get Spanked w/ your next action!", 500)
+                                animate_movement(new_pos, snakes[new_pos], current_player_idx,
+                                                 snake_bg_mapping[new_pos])
+                                update_chat(f"{current_player} encountered Medusa's wrath!", 500)
                                 snake_tiles[new_pos] = snake_medusa_mapping[new_pos]
                                 player_positions[current_player_idx] = snakes[new_pos]
                                 countdown_end = time.time() + player_positions[current_player_idx] * 2
                             elif new_pos in ladders:
                                 animate_movement(player_positions[current_player_idx], new_pos, current_player_idx)
-                                animate_movement(new_pos, ladders[new_pos], current_player_idx, ladder_bg_mapping[new_pos])
-                                update_chat(f"{current_player} is embraced by Hedone’s delight! You can give a kiss of your choice w/ your next action!", 300)
+                                animate_movement(new_pos, ladders[new_pos], current_player_idx,
+                                                 ladder_bg_mapping[new_pos])
+                                update_chat(f"{current_player} is embraced by Hedone’s delight!", 300)
                                 ladder_tiles[new_pos] = ladder_hedone_mapping[new_pos]
                                 player_positions[current_player_idx] = ladders[new_pos]
                                 countdown_end = time.time() + player_positions[current_player_idx] * 2
@@ -768,7 +798,8 @@ while running:
                                 player_positions[current_player_idx] = new_pos
                                 countdown_end = time.time() + player_positions[current_player_idx] * 2
 
-                            action = get_action(player_positions[current_player_idx])
+                            # Use `get_action` with the current player
+                            action = get_action(player_positions[current_player_idx], current_player)
                             update_chat(action, current_player_idx)
 
                             if player_positions[current_player_idx] == 100:
